@@ -1,0 +1,17 @@
+.idea
+node_modules
+build
+dist
+.tmp
+**/.DS_Store
+.vscode
+bower_components
+src/**/*.css
+yarn.lock
+/dev.custom.config.js
+/entry
+
+.jshintignore
+.jshintrc
+.jshint
+.jshint.json

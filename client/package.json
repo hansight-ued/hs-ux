@@ -1,0 +1,33 @@
+{
+  "name": "hansight-ux-web",
+  "version": "1.0.0",
+  "description": "瀚思用户行为研究",
+  "main": "dev.config.js",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "node ./entry/bin/pentagon.js dev",
+    "build": "npm run sync-entry && node ./entry/bin/pentagon.js build",
+    "lint": "node ./entry/bin/pentagon.js lint",
+    "cmd": "node ./entry/bin/pentagon.js",    
+    "validate": "npm ls",
+    "sync-entry": "./syncentry.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HanSight-Dev/hs-ux.git"
+  },
+  "author": "Yuhang Ge",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HanSight-Dev/hs-ux/issues"
+  },
+  "homepage": "https://github.com/HanSight-Dev/hs-ux#readme",
+  "private": true,
+  "pre-commit": [
+    "lint"
+  ],
+  "devDependencies": {
+    "precommit-hook": "^3.0.0"
+  },
+  "dependencies": {}
+}

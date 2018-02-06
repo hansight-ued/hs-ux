@@ -1,0 +1,14 @@
+logs/
+npm-debug.log
+node_modules/
+coverage/
+.idea/
+.tmp/
+run/
+.DS_Store
+*.swp
+.travis.yml
+appveor.yml
+.jslintrc
+.jslintignore
+app/config/config.custom.js

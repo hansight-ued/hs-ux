@@ -1,0 +1,31 @@
+{
+  "background": {
+    "scripts": [ 
+      "js/fetch2.js",
+      "js/background.js"
+    ]
+  },
+  "browser_action": {
+     "default_icon": {
+        "64": "image/logo/logo.png"
+     },
+     "default_title": "在看到浏览器提示后，点击此处激活插件"
+  },
+  
+  "content_scripts": [ {
+     "js": [ "js/content.js" ],
+     "matches": [ "\u003Call_urls>" ]
+  } ],
+  "content_security_policy": "script-src 'self' ; object-src 'self'",
+  "description": "Hansight UX Recorder",
+  "icons": {
+     "64": "image/logo/logo.png"
+  },
+  "manifest_version": 2,
+  "minimum_chrome_version": "60",
+  "name": "Hansight UX Recorder",
+  "permissions": [ "http://*/", "tabCapture", "activeTab" ],
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "version": "1.0.0",
+  "web_accessible_resources": [ "css/content.css", "css/gmail.css", "css/intercom-link-expand.css", "css/link-expand.css", "fonts/FaktProLoom-Light.ttf", "fonts/FaktProLoom-Blond.ttf", "fonts/FaktProLoom-Normal.ttf", "fonts/FaktProLoom-Medium.ttf", "html/audio-visualizer.html", "html/embed-view.html", "html/ff-cam-view.html", "html/get-cam-access.html", "html/get-mic-access.html", "html/get-mic-and-cam-access.html", "img/extension-logo/logo-48.png", "img/extension-logo/recording/production/-48.png", "img/allow-cam.gif", "img/arrow.svg", "img/dark-loading-ring.svg", "img/extension-logo/logo.svg", "img/gmail-create-video-placeholder.png", "img/hint/active.svg", "img/hint/grey-dots.svg", "img/hint/inactive.svg", "img/hint/white-dots.svg", "img/icons/bubble-menu/cam-off.svg", "img/icons/bubble-menu/cam-on.svg", "img/icons/bubble-menu/camera.svg", "img/icons/bubble-menu/capture-cam.svg", "img/icons/bubble-menu/capture-desktop.svg", "img/icons/bubble-menu/capture-tab.svg", "img/icons/bubble-menu/check-no-circle.svg", "img/icons/bubble-menu/check-no-circle-green.svg", "img/icons/bubble-menu/check-no-circle-white.svg", "img/icons/bubble-menu/clock.svg", "img/icons/bubble-menu/close.svg", "img/icons/bubble-menu/close-red.svg", "img/icons/bubble-menu/close-white-thick.svg", "img/icons/bubble-menu/mic-off.svg", "img/icons/bubble-menu/mic-on.svg", "img/icons/bubble-menu/pause.svg", "img/icons/bubble-menu/resume.svg", "img/icons/bubble-menu/resume-triangle.svg", "img/icons/bubble-menu/play-white.svg", "img/icons/checkbox-checkmark.svg", "img/icons/checkmark.svg", "img/icons/checkmark-white-small.svg", "img/icons/close.svg", "img/icons/dot.svg", "img/icons/edit.svg", "img/icons/exclamation.svg", "img/icons/gmail/bullets.svg", "img/icons/gmail/bullets-salmon.svg", "img/icons/gmail/compose-button.svg", "img/icons/gmail/link.svg", "img/icons/gmail/link-salmon.svg", "img/icons/gmail/play.svg", "img/icons/google.svg", "img/icons/insert.svg", "img/icons/outlook.svg", "img/icons/pause.svg", "img/icons/pause-highlighted.svg", "img/icons/power.svg", "img/icons/pre-recording/cam-only-deselected.svg", "img/icons/pre-recording/cam-only-selected.svg", "img/icons/pre-recording/screen-and-cam-deselected.svg", "img/icons/pre-recording/screen-and-cam-selected.svg", "img/icons/pre-recording/screen-only-deselected.svg", "img/icons/pre-recording/screen-only-selected.svg", "img/icons/resize-icon.svg", "img/icons/resume.svg", "img/icons/resume-highlighted.svg", "img/icons/select-arrow.svg", "img/icons/settings.svg", "img/installed.jpg", "img/loading-video-thumbnail.svg", "img/loom-logo.svg", "img/loom-logo-dark.svg", "img/loom-logo-white.svg", "img/loom-logo-mark-white.svg", "img/notifications/bell.svg", "img/notifications/drawer-empty-state.svg", "img/notifications/chat.svg", "img/notifications/emoji.svg", "img/notifications/graph.svg", "img/notifications/megaphone.svg", "img/notifications/play.svg", "img/notifications/trim.svg", "img/notifications/notif-bubble.svg", "img/video-player/down.png", "img/video-player/down@2x.png", "img/video-player/down@3x.png", "img/video-player/joy.png", "img/video-player/joy@2x.png", "img/video-player/joy@3x.png", "img/video-player/love.png", "img/video-player/love@2x.png", "img/video-player/love@3x.png", "img/video-player/nervous.png", "img/video-player/nervous@2x.png", "img/video-player/nervous@3x.png", "img/video-player/up.png", "img/video-player/up@2x.png", "img/video-player/up@3x.png", "img/video-player/wow.png", "img/video-player/wow@2x.png", "img/video-player/wow@3x.png", "img/wave.svg", "js/popup.js" ]
+}
