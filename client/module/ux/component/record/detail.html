@@ -1,0 +1,13 @@
+<div class="content record-detail">
+  <div class="header">
+    <h3>录屏标签：{{$ctrl.record.tag}}</h3>
+    <p>开始时间：{{$ctrl.record.startTime}}，结束时间：{{$ctrl.record.endTime}}</p>
+  </div>
+  <div class="ctrl">
+    <button ng-click="$ctrl.togglePlay()" text="{{$ctrl.playing ? '暂停' : '播放'}}"></button>
+    <button ng-click="$ctrl.stop()" text="停止"></button>
+  </div>
+  <div class="video">
+    <video controls></video>
+  </div>
+</div>

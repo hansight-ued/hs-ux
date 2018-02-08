@@ -16,15 +16,7 @@ const readdir = wrapPromise(fs.readdir);
 const stat = wrapPromise(fs.stat);
 const access = wrapPromise(fs.access);
 const readFile = wrapPromise(fs.readFile);
-
-async function exists(fileOrDir) {
-  try {
-    await access(fileOrDir);
-    return true;
-  } catch(ex) {
-    return false;
-  }
-}
+const appendFile = wrapPromise(fs.appendFile);
 
 async function loopRequire(dir, modules = []) {
   const files = await readdir(dir);
@@ -58,13 +50,53 @@ function decorate(decorators, target, key, desc) {
   return r;
 }
 
+function exists(file) {
+  return new Promise((resolve) => {
+    fs.access(file, err => {
+      resolve(err ? false : true);
+    });
+  });
+}
+
+function mkdir(dir, loop = false) {
+  return new Promise((resolve, reject) => {
+    exists(dir).then(exist => {
+      if (exist) {
+        resolve();
+      } else {
+        if (loop) {
+          const pDir = path.dirname(dir);
+          mkdir(pDir, true).then(() => {
+            fs.mkdir(dir, err => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
+          }, reject);
+        } else {
+          fs.mkdir(dir, err => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        }
+      }
+    });
+  });
+}
+
 module.exports = {
   decorate,
   wrapPromise,
+  mkdir,
   readFile,
+  appendFile,
   readdir,
   stat,
-  access,
   exists,
   loopRequire
 };

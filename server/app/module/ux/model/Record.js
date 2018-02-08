@@ -9,19 +9,22 @@ const ENTITY_DEFINES = [
 ];
 const COLUMN_DEFINES = {
   id: 'id',
-  sessionId: 'objectId',
-  recordId: 'objectId',
-  mimeType: 'tinyint',
-  blob: 'mediumblob'
+  startTime: {
+    type: 'time',
+    create: true
+  },
+  endTime: {
+    type: 'time',
+    nullable: true
+  },
+  tag: {
+    type: 'string',
+    length: 500
+  },
+  mimeType: 'string'
 };
 
-class Record extends BaseModel {
-  static get MIME_TYPES() {
-    return {
-      'video/webm': 0,
-      'video/mp4': 1
-    };
-  }
+class UxRecord extends BaseModel {
   static get entityDefines() {
     return ENTITY_DEFINES;
   }
@@ -30,4 +33,4 @@ class Record extends BaseModel {
   }
 }
 
-module.exports = Record;
+module.exports = UxRecord;

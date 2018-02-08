@@ -11,6 +11,7 @@ const { initSession } = require('./session');
 const { initStatic } = require('./static');
 const { getRedisClient } = require('./redis');
 const { Hash } = require('./hash');
+const util = require('./util');
 
 function bootstrap(options = {}) {
 
@@ -22,6 +23,7 @@ function bootstrap(options = {}) {
     const app = new Koa();
     app.keys = [ config.app.secretKey ];
     app.config = app.context.config = config;
+    app.util = app.context.util = util;
     app.logger = app.context.logger = logger;
     app.hash = app.context.hash = new Hash(app, config.hash || {});
     app.db = app.context.db = db.manager;

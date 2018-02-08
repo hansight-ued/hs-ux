@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const parse = require('co-body');
+const Stream = require('stream');
 
 function sendStatus(code) {
   if (this.state.__bodySent) {
@@ -15,7 +16,7 @@ function success(data = {}) {
     this.logger.error('call ctx.success after body sent');
     return;
   }
-  this.body = {
+  this.body = (data instanceof Buffer || data instanceof Stream) ? data : {
     code: 0,
     data
   };

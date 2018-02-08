@@ -31,7 +31,6 @@ window.fetch2 = (function() {
       }
       options.credentials = options.credentials || 'same-origin';      
       options.headers = options.headers || {};
-      debugger;
       if (acceptBody) {
         let contentType = options.contentType || options.headers['Content-Type'] || 'json';
         if (options.data instanceof Blob || typeof options.data === 'string' || contentType === 'text') {
@@ -60,7 +59,6 @@ window.fetch2 = (function() {
         fetchHandler(res, options).then(resolve, reject);
       }).catch(err => {
         console.error(err);
-        // window.NProgress.done();
         reject({
           message: err.message || err.toString()
         });

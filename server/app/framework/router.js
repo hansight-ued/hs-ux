@@ -2,6 +2,7 @@ const _util = require('./util');
 const _ = require('lodash');
 const path = require('path');
 const KOARouter = require('koa-router');
+const logger = require('./logger');
 
 class Router extends KOARouter {
   constructor(...args) {
@@ -21,6 +22,7 @@ class Router extends KOARouter {
         };
       });
     }
+    logger.debug('register router ->', methods[0], path, middlewares.length);
     return super.register(path, methods, middlewares, opts);
   }
   /*

@@ -3,6 +3,9 @@ module.exports = {
   app: {
     secretKey: process.env['SECRET_KEY'] || 'h3i2n&#2s@i9cs*&dg2h^dml2t/}{c0x8(w)251&^*i<w>|/',
   },
+  ux: {
+    dataDir: process.env['UX_DATA_DIR'] || '/opt/hansight/ux/data'
+  },
   log: {
     path: process.env['LOG_PATH'] || '/var/log/hansight',
     level: process.env['LOG_LEVEL'] || (process.env['SYNC_SCHEMA'] === 'true' ? 'debug' : 'info')

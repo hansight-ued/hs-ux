@@ -8,7 +8,7 @@ module.exports = {
   loadDemoModule: pEnv.hasOwnProperty('LOAD_DEMO_MODULE'),
   root: __dirname,
   env: {
-    UX_ENABLED: false
+    UX_HOST: null
   },
   server: { 
     port

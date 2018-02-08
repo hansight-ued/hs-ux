@@ -1,3 +1,32 @@
-<div class="content records">
-  
+<div class="content record-list">
+  <div class="header">
+    <h3>录屏分析</h3>
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>开始时间</th>
+        <th>结束时间</th>
+        <th>标签</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="record in $ctrl.records.data">
+        <td ng-bind="record.startTime"></td>
+        <td ng-bind="record.endTime"></td>
+        <td ng-bind="record.tag"></td>
+        <td>
+          <a ui-sref="ux.record.detail({id: record.id})">
+            播放
+          </a>
+        </td>
+      </tr>
+      <tr ng-if="$ctrl.records.data.length === 0">
+        <td colspan="3">
+          暂无数据
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>

@@ -18,6 +18,15 @@ const createObjectID = (function() {
 
 let clientTries = 0;
 
+const supportedMimeType = (function() {
+  const MIME_TYPES = ['video/webm', 'video/mp4'];  
+  for(let i = 0; i < MIME_TYPES.length; i++) {
+    if (MediaRecorder.isTypeSupported(MIME_TYPES[i]))
+      return MIME_TYPES[i];
+  }
+  return null;
+})();
+
 class Client {
   constructor() {
     this.port = null;
@@ -38,6 +47,7 @@ class Client {
     window.addEventListener('message', this.onWindowMessageHandler, false);
   }
   isInstalled(uxRemote) {
+    if (!supportedMimeType) return;
     this.uxRemote = uxRemote;
     this._postWindowMessage('foundInstalled');
     this._postPortMessage('setUXRemote', this.uxRemote);
@@ -78,14 +88,14 @@ class Client {
       this[funcName].apply(this, args);
     }
   }
-  _postPortMessage(type, data) {
+  _postPortMessage(type, ...args) {
     const msg = { type: `HANSIGHT_UX_${type}` };
-    if (typeof data !== 'undefined') msg.data = data;
+    msg.data = args;
     this.port && this.port.postMessage(msg)
   }
-  _postWindowMessage(type, data) {
+  _postWindowMessage(type, ...args) {
     const msg = { type: `HANSIGHT_UX_WP_${type}` };
-    if (typeof data !== 'undefined') msg.data = data;
+    msg.data = args;
     window.postMessage(msg, '*');
   }
   onDisconnect() {
@@ -97,12 +107,12 @@ class Client {
   activeTab() {
     this._postWindowMessage('activeTab');
   }
-  startRecord(sessionId) {
+  startRecord(id, tag) {
     if (this.curRecord) {
       this.stopRecord();
     }
-    this.curRecord = { id: sessionId };
-    this._postPortMessage('startRecord', sessionId);
+    this.curRecord = { id, tag };
+    this._postPortMessage('startRecord', id, tag);
   }
   stopRecord(sessionId) {
     if (this.curRecord) {

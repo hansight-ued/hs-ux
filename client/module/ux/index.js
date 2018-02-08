@@ -14,7 +14,9 @@ app.config([
         appModule: 'ux'
       }
     }).state('ux.record', {
-      url: '/records?(page)&(size)',
+      redirectTo: 'ux.record.list'
+    }).state('ux.record.list', {
+      url: '/record?(page)&(size)',
       component: 'uxRecordList',
       params: {
         page: {
@@ -28,7 +30,15 @@ app.config([
           value: 20
         }
       }
-    });
+    }).state('ux.record.detail', {
+      url: '/record/:id',
+      component: 'uxRecordDetail',
+      resolve: {
+        id: ['$stateParams', function($stateParams) {
+          return $stateParams.id;
+        }]
+      }
+    })
   }
 ]);
 

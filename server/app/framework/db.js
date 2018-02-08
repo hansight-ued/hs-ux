@@ -316,8 +316,8 @@ class BaseModel {
   static count(options) {
     return this.repository.count(options);
   }
-  static findOneById(id, options) {
-    return this.repository.findOneById(id, options);
+  static findByIds(ids, options) {
+    return this.repository.findByIds(ids, options);
   }
   static find(options) {
     return this.repository.find(options);
