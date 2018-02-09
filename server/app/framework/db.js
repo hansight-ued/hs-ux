@@ -322,6 +322,9 @@ class BaseModel {
   static find(options) {
     return this.repository.find(options);
   }
+  static findOneById(id, options) {
+    return this.repository.findOneById(id, options);
+  }
   static findOne(options) {
     return this.repository.findOne(options);
   }

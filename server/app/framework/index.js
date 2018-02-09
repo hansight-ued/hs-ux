@@ -51,7 +51,6 @@ const framework = {
   OneToMany,
   OneToOne,
   Index,
-  Entity,
-  getConnection
+  Entity
 };
 module.exports = framework;

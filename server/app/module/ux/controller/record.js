@@ -4,13 +4,11 @@ const {
   Joi,
   BaseForm
 } = require(__framework);
+const { getManager } = require('../service/convert');
+const { dateFromObjectId } = require('../service/util');
 const fs = require('fs');
 const path = require('path');
 
-const MIME_EXT_MAP = {
-  'video/webm': 'webm',
-  'video/mp4': 'mp4'
-};
 class CreateRecordForm extends BaseForm {
   static get columnDefines() {
     return {
@@ -25,6 +23,8 @@ async function create() {
   const form = await this.fillForm(CreateRecordForm);
   if (!dateFromObjectId(form.id)) return this.error(400);
   const record = new RecordModel(form);
+  record.state = RecordModel.STATES.RECORDING;
+  record.startTime = record.lastUpdateTime = new Date();
   await record.save();
   this.success({
     id: record.id
@@ -47,39 +47,34 @@ async function stop() {
   const recordId = this.params.id;
   if (!recordId || recordId.length !== 24)
     return this.error(400);
-  const record = await RecordModel.findOne(recordId);
+  const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
-  record.endTime = new Date();
+  if (record.state !== RecordModel.STATES.RECORDING)
+    return this.success({ id: recordId });
+  record.endTime = record.lastUpdateTime = new Date();
+  record.state = RecordModel.STATES.WAITING;
   await record.save();
-  this.success({ id: record.id });
+  getManager(this.config).schedule();
+  this.success({ id: recordId });
 }
 
 async function view() {
   const recordId = this.params.id;
   if (!recordId || recordId.length !== 24)
     return this.error(400);
-  const record = await RecordModel.findOne(recordId);
+  const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
   this.success(record);
 }
 
-function _n(v) { return v < 10 ? v : '0' + v; }
-function dateFromObjectId(objectId) {
-  try {
-    const dt = new Date(parseInt(objectId.substring(0, 8), 16) * 1000);
-    if (Number.isNaN(dt.getTime())) return null;
-    if (dt.getFullYear() < 2018) return null;
-    return `${dt.getFullYear()}${_n(dt.getMonth() + 1)}${_n(dt.getDate())}`;
-  } catch(ex) {
-    return null;
-  }
-}
 async function upload() {
   const recordId = this.params.id;
   if (!recordId || recordId.length !== 24)
     return this.error(400);
-  const record = await RecordModel.findOne(recordId);
+  const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
+  if (record.state !== RecordModel.STATES.RECORDING)
+    return this.error(400);
   const body = await this.parseBody({
     type: 'raw'
   });
@@ -89,7 +84,7 @@ async function upload() {
   await this.util.mkdir(dataDir, true);
   for(let i = 0; i < 11; i++) {
     try {
-      await this.util.appendFile(path.join(dataDir, recordId), body);
+      await this.util.appendFile(path.join(dataDir, `${recordId}.${record.mimeType.split('/')[1]}`), body);
       break;
     } catch(ex) {
       if (i >= 10) { // 最多尝试 10 次
@@ -98,6 +93,13 @@ async function upload() {
       }
     }
   }
+  record.lastUpdateTime = new Date();
+  // 此处不使用 await 是因为发生错误对系统的影响不大可忽略
+  // 反到是如果把错误发送给浏览器，会导致浏览器重试，重复提交
+  record.save().catch(err => {
+    this.logger.error(err);
+  });
+  console.log(record);
   this.logger.debug('append', body.length, ' bytes to record:', recordId);
   this.success({ id: recordId });
 }
@@ -106,16 +108,50 @@ async function download() {
   const recordId = this.params.id;
   if (!recordId || recordId.length !== 24)
     return this.error(400);
-  const record = await RecordModel.findOne(recordId);
+  const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
   const dt = dateFromObjectId(recordId);
   if (!dt) return this.error(400);
-  const file = path.join(this.config.ux.dataDir, dt, recordId);
-  console.log(file);  
+  const file = path.join(this.config.ux.dataDir, dt, `${recordId}.${record.mimeType.split('/')[1]}`);
   if (!(await this.util.exists(file)))
     return this.error(404);
-  this.set('Content-Disposition', `attachment; filename="${recordId}.${MIME_EXT_MAP[record.mimeType]}"`);
-  this.success(fs.createReadStream(file));
+  const stat = await this.util.stat(file);
+  const total = stat.size;
+  const range = this.headers.range;
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : total-1;
+    const chunksize = (end - start) + 1;
+    this.logger.debug('RANGE:', start, '-', end, '=', chunksize);
+
+    const stream = fs.createReadStream(file, {
+      start,
+      end
+    });
+    this.status = 206;
+    this.set({
+      'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': record.mimeType
+    });
+    this.success(stream);
+  } else {
+    this.set({
+      'Accept-Ranges': 'bytes',
+      'Content-Length': total,
+      'Content-Type': record.mimeType
+    });
+    this.success(fs.createReadStream(file));
+  }
+}
+
+async function test() {
+  const convertManager = getManager(this.config);
+  convertManager.schedule();
+  this.success(convertManager.runningCount);
 }
 
 module.exports = {
@@ -124,5 +160,6 @@ module.exports = {
   stop,
   view,
   upload,
-  download
+  download,
+  test
 };

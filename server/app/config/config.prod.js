@@ -4,7 +4,9 @@ module.exports = {
     secretKey: process.env['SECRET_KEY'] || 'h3i2n&#2s@i9cs*&dg2h^dml2t/}{c0x8(w)251&^*i<w>|/',
   },
   ux: {
-    dataDir: process.env['UX_DATA_DIR'] || '/opt/hansight/ux/data'
+    dataDir: process.env['UX_DATA_DIR'] || '/opt/hansight/ux/data',
+    maxTasks: 10,
+    maxTries: 3
   },
   log: {
     path: process.env['LOG_PATH'] || '/var/log/hansight',

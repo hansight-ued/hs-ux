@@ -100,7 +100,6 @@ async function loadConfig(logger) {
   } else {
     throw new Error(`Unsupport database type: ${db.type}`);
   }
-  loadProxyRules(defaultConfig, logger);
   return defaultConfig;
 }
 
@@ -118,15 +117,6 @@ function initSqlite(cfg, logger, fallback = true) {
     } else {
       throw ex;
     }
-  }
-}
-
-function loadProxyRules(config, logger) {
-  try {
-    config.proxy.rules.unshift(...require(path.join(__root, 'config', 'proxy_rules', APP_NAME + '.js')));
-    logger.debug('Load', config.proxy.rules.length, 'proxy rules');
-  } catch(ex) {
-    logger.warn('Failed to load proxy rules for app:', APP_NAME, ex.message);
   }
 }
 

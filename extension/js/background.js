@@ -142,7 +142,16 @@ class Client {
     this.port.onDisconnect.addListener(this.onDisconnectHandler);
   }
   onDisconnect() {
-    console.log('port disconnected', this.id);
+    this.stopRecord();
+    if (this.stream) {
+      // shutdown stream
+      // console.log('shutdown stream');
+      const tracks = this.stream.getTracks();
+      for (let i = 0; i < tracks.length; ++i) {
+        tracks[i].stop();
+      }
+    }
+    // console.log('port disconnected', this.id);
     this.port.onMessage.removeListener(this.onMessageHandler);
     this.port.onDisconnect.removeListener(this.onDisconnectHandler);
     this.port = null;
@@ -157,7 +166,7 @@ class Client {
   onMessage(msg) {
     if (!msg || typeof msg !== 'object') return;
     if (typeof msg.type !== 'string' || !msg.type.startsWith('HANSIGHT_UX_')) return;
-    console.log('receive port message', msg);
+    // console.log('receive port message', msg);
     const funcName = msg.type.substring(12);
     if (typeof this[funcName] === 'function') {
       const args = Array.isArray(msg.data) ? msg.data : (msg.data ? [msg.data] : []);
@@ -217,12 +226,12 @@ class Client {
       this._onRecordData(e);
     };
     recorder.onstop = () => {
-      console.log('recorder stopped');
+      // console.log('recorder stopped');
       clear();
       this._doStopRecord();
     };
     recorder.onerror = err => {
-      console.log('recorder err', err);
+      // console.log('recorder err', err);
       clear();
       this._doStopRecord();
     };
@@ -232,7 +241,7 @@ class Client {
       recorder.onerror = null;
     }
     recorder.start(3000);
-    console.log('recorder started');
+    // console.log('recorder started');
     this.curRecord.recorder = recorder;
     this.curRecord.state = 'recording';
     this.curRecord.uploader = new UploadManager(this.uxRemote, this.curRecord.id);
@@ -266,7 +275,7 @@ class Client {
   _onRecordData(evt) {
     if (!this.curRecord || !this.curRecord.uploader) return;
     if (!evt.data || !this.uxRemote) return;
-    console.log('recorder data come', evt.data);
+    // console.log('recorder data come', evt.data);
     this.curRecord.uploader.addBlob(evt.data);
   }
 }

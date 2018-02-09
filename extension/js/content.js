@@ -114,7 +114,7 @@ class Client {
     this.curRecord = { id, tag };
     this._postPortMessage('startRecord', id, tag);
   }
-  stopRecord(sessionId) {
+  stopRecord() {
     if (this.curRecord) {
       this._postPortMessage('stopRecord', this.curRecord.id);      
     }

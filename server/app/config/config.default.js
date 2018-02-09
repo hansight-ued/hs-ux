@@ -9,7 +9,11 @@ module.exports = {
     maxBody: '50kb'
   },
   ux: {
-    dataDir: path.resolve(__root, '../run/data')
+    dataDir: path.resolve(__root, '../run/data'),
+    // maxTasks: 使用 ffmpeg 转 webm 到 mp4 的最大并发任务数
+    maxTasks: 2,
+    // maxTries：最大重试次数
+    maxTries: 1
   },
   log: {
     path: path.resolve(__root, '../run/logs'),

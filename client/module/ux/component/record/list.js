@@ -7,6 +7,14 @@ import {
   getRecordList
 } from '../../service/api';
 
+const STATE_NAME_MAP = {
+  '0': '转换出错',
+  '10': '录屏中...',
+  '20': '待处理',
+  '30': '处理中...',
+  '100': '已完成'
+};
+
 class RecordListCtrl {
   $constructor() {
     this.records = {
@@ -26,6 +34,9 @@ class RecordListCtrl {
     ).then(result => {
       this.records.total = result.total;
       this.records.data = result.data;
+      result.data.forEach(re => {
+        re.state = STATE_NAME_MAP[re.state];
+      })
     }, err => {
       message.error('获取录屏列表数据失败', err.message);
     }).finally(() => {

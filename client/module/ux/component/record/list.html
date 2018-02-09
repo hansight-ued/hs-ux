@@ -8,6 +8,7 @@
         <th>开始时间</th>
         <th>结束时间</th>
         <th>标签</th>
+        <th>状态</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -16,6 +17,7 @@
         <td ng-bind="record.startTime"></td>
         <td ng-bind="record.endTime"></td>
         <td ng-bind="record.tag"></td>
+        <td ng-bind="record.state"></td>
         <td>
           <a ui-sref="ux.record.detail({id: record.id})">
             播放
