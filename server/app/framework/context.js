@@ -1,6 +1,9 @@
 const _ = require('lodash');
 const parse = require('co-body');
+const logger = require('./logger');
+const config = require('./config');
 const Stream = require('stream');
+const EMPTY = {};
 
 function sendStatus(code) {
   if (this.state.__bodySent) {
@@ -11,12 +14,12 @@ function sendStatus(code) {
   this.state.__bodySent = true;
 }
 
-function success(data = {}) {
+function success(data = EMPTY) {
   if (this.state.__bodySent) {
     this.logger.error('call ctx.success after body sent');
     return;
   }
-  this.body = (data instanceof Buffer || data instanceof Stream) ? data : {
+  this.body = (data instanceof Buffer) || (data instanceof Stream) ? data : {
     code: 0,
     data
   };
@@ -42,39 +45,10 @@ function error(code, message) {
   this.state.__bodySent = true;
 }
 
-function parseRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = Buffer.allocUnsafe(0);
-    let __ended = false;
-    req.on('data', chunk => {
-      if (__ended) return;
-      const total = body.length + chunk.length;
-      // 临时先写死，后期应该改为从配置里读
-      if (total >= 3 * 1024 * 1024) {
-        __ended = true;        
-        req.destroy();
-        reject('size too large');
-      }
-      body = Buffer.concat([body, chunk], total);
-    });
-    req.on('end', () => {
-      if (__ended) return;      
-      __ended = true;
-      resolve(body);
-    });
-    req.on('error', err => {
-      if (__ended) return;
-      __ended = true;
-      reject(err);
-    });
-  });
-}
-async function parseBody(options = {}) {
+async function parseBody(options = EMPTY) {
   const type = options.type || 'json';
-  const config = this.app.config.form;  
+  const formCfg = config.form;  
   switch(type) {
-  case 'raw':
-    return await parseRawBody(this.req);
   case 'query':
     return this.query;
   case 'json':
@@ -82,14 +56,14 @@ async function parseBody(options = {}) {
       return this.throw(400);
     }
     return await parse.json(this, {
-      limit: options.maxBody || config.jsonMaxBody || config.maxBody
+      limit: options.maxBody || formCfg.jsonMaxBody || formCfg.maxBody
     });
   case 'form':
     if (!this.request.is('urlencoded')) {
       return this.throw(400);
     }
     return await parse.form(this, {
-      limit: options.maxBody || config.jsonMaxBody || config.maxBody
+      limit: options.maxBody || formCfg.jsonMaxBody || formCfg.maxBody
     });
   default:
     this.logger.error(`unknown Form type: ${type}`);
@@ -98,7 +72,7 @@ async function parseBody(options = {}) {
 }
 
 async function fillForm(FormModel) {
-  const config = this.app.config.form;
+  const formCfg = config.form;
   const type = FormModel.type;
   let body;
   let form;
@@ -114,7 +88,7 @@ async function fillForm(FormModel) {
       return this.throw(400);
     }
     body = await parse.json(this, {
-      limit:  FormModel.maxBody || config.jsonMaxBody || config.maxBody
+      limit:  FormModel.maxBody || formCfg.jsonMaxBody || formCfg.maxBody
     });
     form = new FormModel(body);
     if (!form.validate()) {
@@ -126,7 +100,7 @@ async function fillForm(FormModel) {
       return this.throw(400);
     }
     body = await parse.form(this, {
-      limit:  FormModel.maxBody || config.formMaxBody || config.maxBody
+      limit:  FormModel.maxBody || formCfg.formMaxBody || formCfg.maxBody
     });
     form = new FormModel(body);
     if (!form.validate()) {
@@ -145,27 +119,24 @@ async function coreHandler(ctx, next) {
   try {
     await next();
     if (!ctx.state.__bodySent) {
-      if (ctx.body) {
-        ctx.success(ctx.body);        
-      } else {
-        ctx.error(ctx.status || 600);
-      }
+      logger.warn('controller not set __bodySent');
+      ctx.error(404);
     }
   } catch(ex) {
     if (ctx.state.__bodySent) {
-      ctx.logger.error('error occur after __bodySent', ex);
+      logger.error('error occur after __bodySent', ex);
     } else {
       let status = (ex && ex.status) ? ex.status : 500;
       if (status < 0) {
         status = 500;
       }
       if (!ex || !ex.status) {
-        ctx.logger.error(ex);
+        logger.error(ex);
       }
       ctx.error(status);
     }
   } finally {
-    ctx.logger.access(ctx, startTime);    
+    logger.access(ctx, startTime);    
   }
 }
 

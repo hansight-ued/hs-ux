@@ -29,7 +29,12 @@ const COLUMN_DEFINES = {
     type: 'tinyint',
     index: true
   },
-  mimeType: 'string'
+  mimeType: 'string',
+  duration: 'double',
+  aspectRatio: 'float',
+  points: {
+    oneToMany: [type => require('./Point'), point => point.record]
+  }
 };
 
 class UxRecord extends BaseModel {

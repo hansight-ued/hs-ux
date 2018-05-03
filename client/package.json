@@ -6,11 +6,10 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "node ./entry/bin/pentagon.js dev",
-    "build": "npm run sync-entry && node ./entry/bin/pentagon.js build",
+    "build": "node ./entry/bin/pentagon.js build",
     "lint": "node ./entry/bin/pentagon.js lint",
     "cmd": "node ./entry/bin/pentagon.js",    
-    "validate": "npm ls",
-    "sync-entry": "./syncentry.sh"
+    "validate": "npm ls"
   },
   "repository": {
     "type": "git",

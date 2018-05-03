@@ -2,7 +2,8 @@ import {
   component,
   message,
   util,
-  env
+  env,
+  router
 } from 'pentagon';
 import _tpl from './detail.html';
 import {
@@ -10,11 +11,8 @@ import {
 } from '../../service/api';
 
 class RecordDetailCtrl {
-  static get $inject() {
-    return ['$element'];
-  }
-  $constructor($ele) {
-    this.$video = $ele.find('video')[0];
+  $constructor() {
+    this.$video = this.$ele.find('video')[0];
     this.record = {};
     this._request();
   }
@@ -27,7 +25,7 @@ class RecordDetailCtrl {
     }
   }
   _request() {
-    getRecordDetail(this.id).then(data => {
+    getRecordDetail(router.params.id).then(data => {
       this.record = data;
       this._loadVideo();
     }, err => {
@@ -37,15 +35,12 @@ class RecordDetailCtrl {
   _loadVideo() {
     this.$video.src = util.joinUrl(
       env.API_ROOT,
-      'ux/records/' + this.id + '/download'
+      'ux/records/' + router.params.id + '/download'
     );
   }
 }
 
 component('uxRecordDetail', {
   template: _tpl,
-  controller: RecordDetailCtrl,
-  bindings: {
-    id: '<'
-  }
+  controller: RecordDetailCtrl
 });

@@ -2,14 +2,13 @@ const typeorm = require('typeorm');
 const _ = require('lodash');
 const _util = require('./util');
 const path = require('path');
-const { ObjectId } = require('bson');
+const {
+  ObjectId
+} = require('bson');
 const logger = require('./logger');
+const config = require('./config');
 const EMPTY_OBJECT = {};
-
-function objectId() {
-  return new ObjectId().toString('hex');
-}
-
+const NOT_INIT_ERR_MSG = 'Database has not been initialized';
 const {
   Column,
   CreateDateColumn,
@@ -34,9 +33,12 @@ const {
   Index
 } = typeorm;
 
+function objectId() {
+  return new ObjectId().toString('hex');
+}
 
 function sqliteTypeMap(type) {
-  switch(type) {
+  switch (type) {
   case 'string':
   case 'varchar':
   case 'char':
@@ -67,7 +69,7 @@ function sqliteTypeMap(type) {
 }
 
 function mysqlTypeMap(type) {
-  switch(type) {
+  switch (type) {
   case 'string':
   case 'varchar':
   case 'char':
@@ -85,146 +87,21 @@ function mysqlTypeMap(type) {
   }
 }
 
-function _wrapColumn(options) {
-  if (_.isString(options)) {
-    options = { type: options};
-  } else if (!_.isObject(options)) {
-    throw new Error('columnDefine not validate');
+class DatabaseManager {
+  constructor() {
+    this._connection = null;
+    this._config = null;
+    this._entityManager = null;
   }
-  if (!options.type) options.type = 'string';
-  if (_.isString(options.type)) options.type = options.type.toLowerCase();
-  if (options.type === 'id') {
-    options.primary = true;
+  get connection() {
+    if (!this._connection) throw new Error(NOT_INIT_ERR_MSG);
+    return this._connection;
   }
-  if (options.type === 'objectid' || options.type === 'id') {
-    options.type = 'string';
-    options.length = 24;
-    options.default = objectId;
+  get entityManager() {
+    if (!this._entityManager) throw new Error(NOT_INIT_ERR_MSG);
+    return this._entityManager;
   }
-  const copyOptions = Object.assign({}, options);
-  if (__config.type === 'sqlite') {
-    copyOptions.type = sqliteTypeMap(copyOptions.type);
-  } else if (__config.type === 'mysql') {
-    copyOptions.type = mysqlTypeMap(copyOptions.type);
-  } else {
-    throw new Error(__config.type + ' database type not support');
-  }
-  if (_.isFunction(copyOptions.default)) {
-    delete copyOptions.default;
-  }
-  if (copyOptions.type === Date) {
-    if (copyOptions.create && copyOptions.update) throw new Error('create and update can not both be true');
-    else if (copyOptions.create) return CreateDateColumn(copyOptions);
-    else if (copyOptions.update) return UpdateDateColumn(copyOptions);
-    else return Column(copyOptions);
-  } else {
-    return Column(copyOptions);
-  }
-}
-
-let __connection = null; // singleton
-let __config = null;
-let __entityManager = null;
-
-function registerConnection(connection) {
-  if (__connection) throw new Error('connection already registered');
-  __connection = connection;
-  __entityManager = connection.entityManager;
-}
-
-async function getConnection(config, logger) {
-  if (__connection) return __connection;
-  __config = Object.assign({
-    type: config.type,
-    synchronize: !!config.synchronize,
-  }, config[config.type]);
-
-  const models = [];
-  /*
-   * 扫描并加载公共 models
-   */
-  const commonDir = path.join(__common, 'model');
-  if (await _util.exists(commonDir)) {
-    await _util.loopRequire(commonDir, models);
-  }
-  /**
-   * 扫描并加载各个子模块的 models
-   */
-  const moduleDir = path.join(__root, 'module');
-
-  const subModules = await _util.readdir(moduleDir);
-
-  for(let i = 0; i < subModules.length; i++) {
-    const modelDir = path.join(moduleDir, subModules[i], 'model');
-    if (await _util.exists(modelDir)) {
-      await _util.loopRequire(modelDir, models);
-    }
-  }
-  models.forEach(Model => wrapModel(Model));
-  logger.debug(`${models.length} models loaded`);
-
-  __connection = await typeorm.createConnection(Object.assign({
-    entities: models,
-    logging: true,
-    logger: {
-      logQuery(query, params) {
-        logger.debug(query, params || '');
-      },
-      logQueryError(message, query, params) {
-        logger.error(message, query, params || '');
-      },
-      logQuerySlow(time, query, params) {
-        logger.warn('SLOW QUERY', time, query, params || '');
-      },
-      logSchemaBuild(message) {
-        logger.debug(message);
-      },
-      log: function(level, message) {
-        logger.debug('TYPEORM LOG [', level, ']', message);
-      }
-    }
-  }, __config));
-  __entityManager = __connection.manager;
-  models.forEach(m => {
-    m.repository = __entityManager.getRepository(m);
-  });
-  return __connection;
-}
-
-/**
- * columnDefines 可以是直接定义 typeorm 的 decorator:
- *   const { BaseModel, Column, Index, PrimaryColumn, ManyToMany } = require(__framework);
- *   class SomeModel extends BaseModel {
- *     static get columnDefines() {
- *       return {
- *          id: PrimaryColumn(),
- *          name: [Column({ type: 'string', nullable: false }), Index()],
- *          children: [ManyToMany(...)]
- *       }
- *     }
- *   }
- * 也可以是定义 object 的方式：
- *   const { BaseModel } = require(__framework);
- *   class SomeModel extends BaseModel {
- *     static get columnDefines() {
- *       return {
- *          id: 'id',
- *          name: {
- *            type: 'string',
- *            index: true
- *          },
- *          children: {
- *            manyToMany: [...]
- *          }
- *       }
- *     }
- *   }
- * @param ModelClass
- * @returns {*}
- */
-function wrapModel(ModelClass) {
-
-  function _relation(_arr, cc) {
+  _wrapRelation(_arr, cc) {
     let _m;
     if (cc.manyToMany) {
       _m = ManyToMany(...cc.manyToMany);
@@ -250,65 +127,211 @@ function wrapModel(ModelClass) {
     }
     return true;
   }
-
-  const columns = ModelClass.columnDefines;
-  for(const pn in columns) {
-    const cv = columns[pn];
-    let dArr;
-    if (Array.isArray(cv)) {
-      dArr = cv;
-      columns[pn] = {};
-    } else if (_.isFunction(cv)) {
-      dArr = [ cv ];
-      columns[pn] = {};
-    } else if (_.isString(cv)) {
-      columns[pn] = { type: cv };
-      dArr = [ _wrapColumn(columns[pn]) ];
-    } else if (_.isObject(cv)) {
-      dArr = [];
-      if (!_relation(dArr, cv)) {
-        dArr.push(_wrapColumn(cv));
-        if (_.isObject(cv.index)) {
-          dArr.push(Index(cv.index));
-          delete cv.index;
-        } else if (cv.index === true) {
-          dArr.push(Index());
-          delete cv.index;
+  /**
+   * columnDefines 可以是直接定义 typeorm 的 decorator:
+   *   const { BaseModel, Column, Index, PrimaryColumn, ManyToMany } = require(__framework);
+   *   class SomeModel extends BaseModel {
+   *     static get columnDefines() {
+   *       return {
+   *          id: PrimaryColumn(),
+   *          name: [Column({ type: 'string', nullable: false }), Index()],
+   *          children: [ManyToMany(...)]
+   *       }
+   *     }
+   *   }
+   * 也可以是定义 object 的方式：
+   *   const { BaseModel } = require(__framework);
+   *   class SomeModel extends BaseModel {
+   *     static get columnDefines() {
+   *       return {
+   *          id: 'id',
+   *          name: {
+   *            type: 'string',
+   *            index: true
+   *          },
+   *          children: {
+   *            manyToMany: [...]
+   *          }
+   *       }
+   *     }
+   *   }
+   * @param ModelClass
+   * @returns {*}
+   */
+  _wrapModel(ModelClass) {
+    const columns = ModelClass.columnDefines;
+    for (const pn in columns) {
+      const cv = columns[pn];
+      let dArr;
+      if (Array.isArray(cv)) {
+        dArr = cv;
+        columns[pn] = {};
+      } else if (_.isFunction(cv)) {
+        dArr = [cv];
+        columns[pn] = {};
+      } else if (_.isString(cv)) {
+        columns[pn] = {
+          type: cv
+        };
+        dArr = [this._wrapColumn(columns[pn])];
+      } else if (_.isObject(cv)) {
+        dArr = [];
+        if (!this._wrapRelation(dArr, cv)) {
+          dArr.push(this._wrapColumn(cv));
+          if (_.isObject(cv.index)) {
+            dArr.push(Index(cv.index));
+            delete cv.index;
+          } else if (cv.index === true) {
+            dArr.push(Index());
+            delete cv.index;
+          }
         }
+      } else {
+        throw new Error('columnDefine not validate');
       }
-    } else {
-      throw new Error('columnDefine not validate');
+      _util.decorate(
+        dArr,
+        ModelClass.prototype,
+        pn,
+        void 0
+      );
     }
-    _util.decorate(
-      dArr,
-      ModelClass.prototype,
-      pn,
-      void 0
+
+    const ent = ModelClass.entityDefines;
+    return _util.decorate(
+      Array.isArray(ent) ? ent : [ent],
+      ModelClass
     );
   }
+  _wrapColumn(options) {
+    if (_.isString(options)) {
+      options = {
+        type: options
+      };
+    } else if (!_.isObject(options)) {
+      throw new Error('columnDefine not validate');
+    }
+    if (!options.type) options.type = 'string';
+    if (_.isString(options.type)) options.type = options.type.toLowerCase();
+    if (options.type === 'id') {
+      options.primary = true;
+    }
+    if (options.type === 'objectid' || options.type === 'id') {
+      options.type = 'string';
+      options.length = 24;
+      options.default = objectId;
+    }
+    const copyOptions = Object.assign({}, options);
+    if (this._config.type === 'sqlite') {
+      copyOptions.type = sqliteTypeMap(copyOptions.type);
+    } else if (this._config.type === 'mysql') {
+      copyOptions.type = mysqlTypeMap(copyOptions.type);
+    } else {
+      throw new Error(this._config.type + ' database type not support');
+    }
+    if (_.isFunction(copyOptions.default)) {
+      delete copyOptions.default;
+    }
+    if (copyOptions.type === Date) {
+      if (copyOptions.create && copyOptions.update) throw new Error('create and update can not both be true');
+      if (options.update) {
+        logger.warn('ON UPDATE CURRENT_TIMESTAMP is not supported.');
+      }
+      if (this._config.type === 'mysql') {
+        copyOptions.type = 'bigint';
+      }
+      options.default = () => Date.now();
+      return Column(copyOptions);
+    } else {
+      return Column(copyOptions);
+    }
+  }
+  async initialize() {
+    if (this._connection) return;
+    this._config = Object.assign({
+      type: config.db.type,
+      synchronize: !!config.db.synchronize,
+    }, config.db[config.db.type]);
 
-  const ent = ModelClass.entityDefines;
-  return _util.decorate(
-    Array.isArray(ent) ? ent : [ent],
-    ModelClass
-  );
+    const models = [];
+    /*
+     * 扫描并加载公共 models
+     */
+    const commonDir = path.join(__common, 'model');
+    if (await _util.exists(commonDir)) {
+      await _util.loopRequire(commonDir, models);
+    }
+    /**
+     * 扫描并加载各个子模块的 models
+     */
+    const moduleDir = path.join(__root, 'module');
+
+    const subModules = await _util.readdir(moduleDir);
+
+    for (let i = 0; i < subModules.length; i++) {
+      const modelDir = path.join(moduleDir, subModules[i], 'model');
+      if (await _util.exists(modelDir)) {
+        await _util.loopRequire(modelDir, models);
+      }
+    }
+    models.forEach(Model => this._wrapModel(Model));
+    logger.debug(`${models.length} models loaded`);
+
+    this._connection = await typeorm.createConnection(Object.assign({
+      entities: models,
+      logging: true,
+      logger: {
+        logQuery(query, params) {
+          logger.debug(query, params || '');
+        },
+        logQueryError(message, query, params) {
+          logger.error(message, query, params || '');
+        },
+        logQuerySlow(time, query, params) {
+          logger.warn('SLOW QUERY', time, query, params || '');
+        },
+        logSchemaBuild(message) {
+          logger.debug(message);
+        },
+        log: function (level, message) {
+          logger.debug('TYPEORM LOG [', level, ']', message);
+        }
+      }
+    }, this._config));
+    this._entityManager = this._connection.manager;
+    models.forEach(m => {
+      m.__repo = this._entityManager.getRepository(m);
+    });
+  }
+  transaction(...args) {
+    return this.entityManager.transaction(...args);
+  }
+  save(...args) {
+    return this.entityManager.save(...args);
+  }
+  remove(...args) {
+    return this.entityManager.remove(...args);
+  }
 }
+
+/* singleton */
+const db = new DatabaseManager();
 
 class BaseModel {
   static get entityDefines() {
     // 默认为 @Entity()
     // 可以通过此属性手动指定 entity,
     // 比如 @Entity(name, options) 或 @EmbeddableEntity() 等
-    return [ typeorm.Entity() ];
+    return [typeorm.Entity()];
   }
   static get columnDefines() {
     throw new Error('abstract method');
   }
-  static get connection() {
-    return __connection;
-  }
-  static get entityManager() {
-    return __entityManager;
+  static get repository() {
+    if (!this.__repo) {
+      throw new Error(NOT_INIT_ERR_MSG);
+    }
+    return this.__repo;
   }
   static createQueryBuilder(alias) {
     return this.repository.createQueryBuilder(alias || this.name.replace(/[a-z][A-Z]/g, m => m[0] + '_' + m[1]).toLowerCase());
@@ -319,11 +342,11 @@ class BaseModel {
   static findByIds(ids, options) {
     return this.repository.findByIds(ids, options);
   }
+  static findOneById(id, options) {
+    return this.repository.findOne(id, options);
+  }
   static find(options) {
     return this.repository.find(options);
-  }
-  static findOneById(id, options) {
-    return this.repository.findOneById(id, options);
   }
   static findOne(options) {
     return this.repository.findOne(options);
@@ -335,7 +358,7 @@ class BaseModel {
     try {
       await this.repository.removeById(id, options);
       return true;
-    } catch(ex) {
+    } catch (ex) {
       return false;
     }
   }
@@ -353,8 +376,8 @@ class BaseModel {
     } else {
       assignDefaultValue = assignDefaultValue !== false;
     }
-    const columnDefines =  this.constructor.columnDefines;
-    for(const pn in columnDefines) {
+    const columnDefines = this.constructor.columnDefines;
+    for (const pn in columnDefines) {
       const cd = columnDefines[pn];
       if (obj.hasOwnProperty(pn)) {
         this[pn] = obj[pn];
@@ -380,8 +403,7 @@ const BASE_USER_COLUMN_DEFINES = {
   id: 'id',
   username: {
     type: 'string',
-    unique: true,
-    index: true
+    unique: true
   },
   nickname: {
     type: 'string',
@@ -424,11 +446,11 @@ class BaseUserModel extends BaseModel {
       throw new Error('User.hasAllPrivileges need Array type argument');
     }
     await this.loadPrivileges();
-    for(let i = 0; i < privileges.length; i++) {
+    for (let i = 0; i < privileges.length; i++) {
       const priv = privileges[i];
       if (Array.isArray(priv)) {
         if (!(await this.hasAnyPrivilege(priv))) {
-          return false; 
+          return false;
         }
       } else if (!this._hasPrivilege(priv)) {
         return false;
@@ -447,12 +469,11 @@ class BaseUserModel extends BaseModel {
       throw new Error('User.hasAnyPrivilege need Array type argument');
     }
     await this.loadPrivileges();
-    for(let i = 0; i < privileges.length; i++) {
+    for (let i = 0; i < privileges.length; i++) {
       const priv = privileges[i];
-      console.log(priv);
       if (Array.isArray(priv)) {
         if (await this.hasAllPrivileges(priv)) {
-          return true; 
+          return true;
         }
       } else if (this._hasPrivilege(priv)) {
         return true;
@@ -496,13 +517,12 @@ class BaseUserModel extends BaseModel {
   }
 }
 
+
 module.exports = {
-  wrapModel,
   BaseModel,
   BaseUserModel,
   objectId,
-  registerConnection,
-  getConnection,
+  manager: db,
   Column,
   ManyToMany,
   ManyToOne,
@@ -525,5 +545,3 @@ module.exports = {
   ClosureEntity,
   Index
 };
-
-

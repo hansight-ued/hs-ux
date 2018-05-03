@@ -2,9 +2,12 @@ const RecordModel = require('../model/Record');
 const PaginationForm = require(__common + 'form/pagination.js');
 const { 
   Joi,
-  BaseForm
+  BaseForm,
+  logger,
+  config,
+  util
 } = require(__framework);
-const { getManager } = require('../service/convert');
+const convertManager = require('../service/convert');
 const { dateFromObjectId } = require('../service/util');
 const fs = require('fs');
 const path = require('path');
@@ -23,8 +26,9 @@ async function create() {
   const form = await this.fillForm(CreateRecordForm);
   if (!dateFromObjectId(form.id)) return this.error(400);
   const record = new RecordModel(form);
+  record.duration = record.aspectRatio = -1.0;
   record.state = RecordModel.STATES.RECORDING;
-  record.startTime = record.lastUpdateTime = new Date();
+  record.startTime = record.lastUpdateTime = Date.now();
   await record.save();
   this.success({
     id: record.id
@@ -51,10 +55,10 @@ async function stop() {
   if (!record) return this.error(404);
   if (record.state !== RecordModel.STATES.RECORDING)
     return this.success({ id: recordId });
-  record.endTime = record.lastUpdateTime = new Date();
+  record.endTime = record.lastUpdateTime = Date.now();
   record.state = RecordModel.STATES.WAITING;
   await record.save();
-  getManager(this.config).schedule();
+  convertManager.schedule();
   this.success({ id: recordId });
 }
 
@@ -62,6 +66,7 @@ async function view() {
   const recordId = this.params.id;
   if (!recordId || recordId.length !== 24)
     return this.error(400);
+  logger.debug(recordId);
   const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
   this.success(record);
@@ -80,7 +85,7 @@ async function upload() {
   });
   const dt = dateFromObjectId(recordId);
   if (!dt) return this.error(400);
-  const dataDir = path.join(this.config.ux.dataDir, dt);
+  const dataDir = path.join(config.ux.dataDir, dt);
   await this.util.mkdir(dataDir, true);
   for(let i = 0; i < 11; i++) {
     try {
@@ -88,19 +93,18 @@ async function upload() {
       break;
     } catch(ex) {
       if (i >= 10) { // 最多尝试 10 次
-        this.logger.error(ex);
+        logger.error(ex);
         return this.error(500);
       }
     }
   }
-  record.lastUpdateTime = new Date();
+  record.lastUpdateTime = Date.now();
   // 此处不使用 await 是因为发生错误对系统的影响不大可忽略
   // 反到是如果把错误发送给浏览器，会导致浏览器重试，重复提交
   record.save().catch(err => {
-    this.logger.error(err);
+    logger.error(err);
   });
-  console.log(record);
-  this.logger.debug('append', body.length, ' bytes to record:', recordId);
+  logger.debug('append', body.length, ' bytes to record:', recordId);
   this.success({ id: recordId });
 }
 
@@ -112,10 +116,16 @@ async function download() {
   if (!record) return this.error(404);
   const dt = dateFromObjectId(recordId);
   if (!dt) return this.error(400);
-  const file = path.join(this.config.ux.dataDir, dt, `${recordId}.${record.mimeType.split('/')[1]}`);
-  if (!(await this.util.exists(file)))
+  let file = path.join(config.ux.dataDir, dt, `${recordId}.`);
+  if (record.state === RecordModel.STATES.FINISHED) {
+    file += 'final.mp4';
+  } else {
+    file += record.mimeType.split('/')[1];
+  }
+  logger.debug(file);
+  if (!(await util.exists(file)))
     return this.error(404);
-  const stat = await this.util.stat(file);
+  const stat = await util.stat(file);
   const total = stat.size;
   const range = this.headers.range;
 
@@ -124,7 +134,7 @@ async function download() {
     const start = parseInt(parts[0], 10);
     const end = parts[1] ? parseInt(parts[1], 10) : total-1;
     const chunksize = (end - start) + 1;
-    this.logger.debug('RANGE:', start, '-', end, '=', chunksize);
+    logger.debug('RANGE:', start, '-', end, '=', chunksize);
 
     const stream = fs.createReadStream(file, {
       start,
@@ -135,7 +145,7 @@ async function download() {
       'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
-      'Content-Type': record.mimeType
+      'Content-Type': record.state === RecordModel.STATES.FINISHED ? 'video/mp4' : record.mimeType
     });
     this.success(stream);
   } else {
@@ -149,9 +159,9 @@ async function download() {
 }
 
 async function test() {
-  const convertManager = getManager(this.config);
-  convertManager.schedule();
-  this.success(convertManager.runningCount);
+  const r = await RecordModel.findOneById('5a7ff1c5e43bddd06308872a');
+  logger.debug(r);
+  this.success(r);
 }
 
 module.exports = {

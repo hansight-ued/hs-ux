@@ -1,42 +1,42 @@
 const path = require('path');
 
 module.exports = {
-  app: {
-    title: 'Hansight Enterprise',
-    secretKey: 'jkldiw483749%#&%!&c',
-  },
   form: {
     maxBody: '50kb'
   },
   ux: {
-    dataDir: path.resolve(__root, '../run/data'),
+    enable: true,
+    // 录屏数据存放位置    
+    dataDir: path.resolve(__root, '../run/videos'),
     // maxTasks: 使用 ffmpeg 转 webm 到 mp4 的最大并发任务数
     maxTasks: 2,
     // maxTries：最大重试次数
     maxTries: 1
   },
   log: {
-    path: path.resolve(__root, '../run/logs'),
     level: 'debug',
     access: true
   },
-  /* 配置系统管理员账户密码 */
-  admin: {
-    username: 'admin',
-    // Rv3k/y6G1eZpg/35IkqHQiEviGdukQirkJdMVzxIwlha5SqxuUwF+UbSIjzsUe0f4J3Ci60JAMcXwAp5t2tq4Q==
-    password: 'admin',
-    theme: 'black'
+  /* 系统初始化相关配置 */
+  initialize: {
+    /* 配置系统管理员账户信息 */
+    admin: {
+      username: 'admin',
+      nickname: '管理员',
+      theme: 'black'
+    },
+    /* 配置系统初始化时需要添加的用户 */
+    users: [{
+      username: 'xiaoge',
+      nickname: '小葛',
+      theme: 'black',
+      roles: ['user']
+    }]
   },
-  /* 配置系统初始化时需要添加的用户 */
-  users: [{
-    username: 'hansight',
-    // kqz99kq6+1WFM5GAs9Wgxgga1idNQoxUr7HFDOqjC5AdJUVPiUxCfBGDNAx/hN4vAO0FmIG4TVH90eq0cGaYxg==
-    password: 'S3cur!ty',
-    theme: 'black',
-    roles: ['user', 'bi_user']
-  }],
   static: {
-    path: null
+    enable: true,
+    prefix: '__public',
+    path: path.resolve(__dirname, '../../../client')
   },
   session: {
     // 优先从 env.SESSION_TYPE 中取，方便灵活调试

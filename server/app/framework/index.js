@@ -5,11 +5,14 @@ const logger = require('./logger');
 const { extendContext } = require('./context');
 const util = require('./util');
 const { authorizeMiddleware } = require('./session');
+const config = require('./config');
+const { encodePassword, verifyPassword } = require('./hash');
 
 const { 
   BaseModel,
   BaseUserModel,
   objectId,
+  manager,
   Column, 
   PrimaryColumn,
   PrimaryGeneratedColumn,
@@ -31,6 +34,10 @@ const framework = {
   bootstrap,
   Router,
   logger,
+  config,
+  database: manager,
+  encodePassword,
+  verifyPassword,
   extendContext,
   authorize: authorizeMiddleware,
   privilege: authorizeMiddleware,
@@ -51,6 +58,7 @@ const framework = {
   OneToMany,
   OneToOne,
   Index,
-  Entity
+  Entity,
+  getConnection
 };
 module.exports = framework;

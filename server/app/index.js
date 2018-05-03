@@ -11,7 +11,11 @@ global.__module = path.join(__dirname, 'module/');
 /*
  * 
  */
-const { bootstrap } = require('./framework');
+const {
+  bootstrap,
+  logger,
+  config
+} = require('./framework');
 
 bootstrap({
   beforeStart: async function(app) {
@@ -24,8 +28,8 @@ bootstrap({
        * 必须在函数内而不是文件头部 require
        * 因为框架需要进行数据库相关初始化。
        */
-      await require('./init_data')(app);
-      app.logger.info('finish sync, process exit.');
+      await require('./init_data')();
+      logger.info('finish sync, process exit.');
       process.exit(0);
     }
     /*
@@ -33,7 +37,7 @@ bootstrap({
      * 这个方法只适用于初始化，但如果是数据库发生了变更，需要手动执行 migrate
      */
     const adminUser = await require('./common/model/User').findOne({
-      username: app.config.admin.username
+      username: config.initialize.admin.username
     });
     // throw new Error('tttt')
     if (adminUser) {
@@ -44,7 +48,7 @@ bootstrap({
        * 必须在函数内而不是文件头部 require
        * 因为框架需要进行数据库相关初始化。
        */
-      await require('./init_data')(app);
+      await require('./init_data')();
     } else {
       throw new Error('Admin user not found, you may sync schema and data first. Try run `npm run db:sync`');
     }

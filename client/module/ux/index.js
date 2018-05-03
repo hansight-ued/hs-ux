@@ -32,12 +32,7 @@ app.config([
       }
     }).state('ux.record.detail', {
       url: '/record/:id',
-      component: 'uxRecordDetail',
-      resolve: {
-        id: ['$stateParams', function($stateParams) {
-          return $stateParams.id;
-        }]
-      }
+      component: 'uxRecordDetail'
     })
   }
 ]);

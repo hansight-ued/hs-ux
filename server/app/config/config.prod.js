@@ -1,15 +1,14 @@
 const path = require('path');
+const os = require('os');
+const pkgName = require('../../package.json').name;
+
 module.exports = {
-  app: {
-    secretKey: process.env['SECRET_KEY'] || 'h3i2n&#2s@i9cs*&dg2h^dml2t/}{c0x8(w)251&^*i<w>|/',
-  },
   ux: {
-    dataDir: process.env['UX_DATA_DIR'] || '/opt/hansight/ux/data',
+    dataDir: '/opt/hansight/ux/videos',
     maxTasks: 10,
     maxTries: 3
   },
   log: {
-    path: process.env['LOG_PATH'] || '/var/log/hansight',
     level: process.env['LOG_LEVEL'] || (process.env['SYNC_SCHEMA'] === 'true' ? 'debug' : 'info')
   },
   session: {
@@ -18,9 +17,6 @@ module.exports = {
   db: {
     type: 'mysql',
     synchronize: process.env['SYNC_SCHEMA'] === 'true',
-    sqlite: {
-      database: '/opt/hansight/db'
-    },
     mysql: {
       host: '127.0.0.1',
       port: 3306,
@@ -29,17 +25,8 @@ module.exports = {
       database: 'hansight_ux'
     }
   },
-  router: {
-    prefix: '__api'
-  },
   static: {
-    prefix: '__public',
-    path: path.resolve(__root, '../../client')
-  },
-  proxy: {
-    remotes: {}
-  },
-  admin: {
-    password: process.env['ADMIN_PASSWORD'] || 'x&*d2^!2dx{]|0c.w[lkw'
+    // 生产模式下，默认不开启对静态文件的支持，统一由 nginx 处理静态文件
+    enable: false
   }
 };

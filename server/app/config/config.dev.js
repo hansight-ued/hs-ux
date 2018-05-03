@@ -6,11 +6,7 @@ module.exports = {
     host: '0.0.0.0'
   },
   static: {
-    prefix: '__public',
     path: path.resolve(__dirname, '../../../client/dist')
-  },
-  router: {
-    prefix: '/'
   },
   session: {
     type: 'redis',
@@ -31,10 +27,5 @@ module.exports = {
       password: "hansight.com",
       database: "hansight_ux"
     }
-  },
-  elastic: {
-    enable: true,
-    hosts: [ '172.16.150.29:9200' ],
-    apiVersion: '5.5'
   }
 };

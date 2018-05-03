@@ -2,16 +2,25 @@ const _util = require('./util');
 const _ = require('lodash');
 const path = require('path');
 const KOARouter = require('koa-router');
+const config = require('./config');
 const logger = require('./logger');
 
+function wrapUrlPrefix(v) {
+  return `/${v}`.replace(/\/+/g, '/').replace(/\/$/, '');
+}
 class Router extends KOARouter {
-  constructor(...args) {
-    super(...args);
+  constructor(opts) {
+    if (opts && opts.prefix) {
+      opts.prefix = wrapUrlPrefix(opts.prefix);
+    }
+    super(opts);
   }
   register(path, methods, middlewares, opts) {
     if (middlewares && !Array.isArray(middlewares)) {
       middlewares = [middlewares];
     }
+    path = wrapUrlPrefix(path);
+    logger.debug('Register Route:', methods[0], path);
     /*
 		 * 将 router 的 middleware 的 this 绑定为 koa context
 		 */
@@ -22,7 +31,6 @@ class Router extends KOARouter {
         };
       });
     }
-    logger.debug('register router ->', methods[0], path, middlewares.length);
     return super.register(path, methods, middlewares, opts);
   }
   /*
@@ -38,7 +46,7 @@ class Router extends KOARouter {
   rest(...args) {
     if (!_.isString(args[0])) {
       throw new Error('first argument of router.rest must be string');
-    }
+    } 
     const url = args[0];
     const controllers = args[args.length - 1];
     if (!_.isObject(controllers)) {
@@ -64,19 +72,22 @@ class Router extends KOARouter {
   }
 }
 
-async function registerRouter(app, config) {
+async function registerRouter(app) {
   const subModules = await _util.readdir(__module);
   const subRouters = [];
   for(let i = 0; i < subModules.length; i++) {
     const rf = path.join(__module, subModules[i], 'router.js');
     if (await _util.exists(rf)) {
-      subRouters.push(require(rf));
+      const rs = require(rf);
+      if (Array.isArray(rs)) subRouters.push(...rs);
+      else subRouters.push(rs);
     }
   }
-  const rootRouter = new Router();
-  const apiPrefix = `/${config.prefix || ''}/`.replace(/\/+/, '/').replace(/\/$/, '');
+  const rootRouter = new Router({
+    prefix: wrapUrlPrefix(config.router.prefix || '')
+  });
   subRouters.forEach(subRouter => {
-    rootRouter.use(apiPrefix, subRouter.routes());
+    rootRouter.use(subRouter.routes());
   });
   app.use(rootRouter.routes(), rootRouter.allowedMethods());
 }

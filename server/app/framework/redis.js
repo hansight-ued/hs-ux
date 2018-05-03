@@ -1,7 +1,10 @@
+const logger = require('./logger');
+const config = require('./config');
+
 let client = null;
-async function getRedisClient(config, logger) {
+async function getRedisClient() {
   if (client) return client; // singleton
-  client = require('redis').createClient(config);
+  client = require('redis').createClient(config.redis);
   client.on('error', err => {
     logger.error(err);
   });
@@ -10,7 +13,7 @@ async function getRedisClient(config, logger) {
    * 这里采取执行一次 get 命令来检查 redis 状态
    */
   await new Promise((resolve, reject) => {
-    client.get('______', (err, result) => {
+    client.get('______', err => {
       if (err) {
         logger.error('redis connect failed');
         reject(err);

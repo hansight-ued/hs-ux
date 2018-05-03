@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const exec = require('child_process').execSync;
 const pkgName = require('../../package.json').name;
-const APP_NAME = process.env['BUILD_APP'] || pkgName;
+const _util = require('./util');
+const logger = require('./logger');
 
 function mergeConfig(dst, src) {
   for(const k in src) {
@@ -18,57 +19,11 @@ function mergeConfig(dst, src) {
   return dst;
 }
 
-/*
- * yml 中的配置是扁平化的，需要还原成嵌套化 object
- *
- * server.port: 8080
- * server.host: 127.0.0.1
- *
- * 还原成
- *
- * server: {
- *   port: 8080,
- *   host: '127.0.0.1'
- * }
- */
-function extractYml(ymlObj) {
-  const newObj = {};
-  for(const k in ymlObj) {
-    let co = newObj;
-    const ks = k.split('.');
-    const v = ymlObj[k];
-    ks.forEach((ck, i) => {
-      if (i === ks.length - 1) {
-        co[ck] = v;
-        return;
-      }
-      if (!co.hasOwnProperty(ck)) {
-        co[ck] = {};
-      }
-      co = co[ck];
-    });
-    if (!Array.isArray(v)) {
-      continue;
-    }
-    for(let i = 0; i < v.length; i++) {
-      if (_.isObject(v[i])) {
-        v[i] = extractYml(v[i]);
-      }
-    }
-  }
-  return newObj;
-}
-
-async function loadConfig(logger) {
+function loadConfig() {
   const defaultConfig = require('../config/config.default');
   const env = process.env['NODE_ENV'];
   if (!env || env === 'development') {
     mergeConfig(defaultConfig, require('../config/config.dev'));
-    try {
-      mergeConfig(defaultConfig, require('../config/config.custom'));
-    } catch(ex) {
-      // ignore
-    }
   } else if (env === 'production') {
     if (defaultConfig.db.type === 'mysql') {
       // mysql 类型数据库必须在 config.yml 中配置 mysql 链接
@@ -80,25 +35,31 @@ async function loadConfig(logger) {
       const ymlFile = path.resolve(__root, '../../config.yml');
       const ymlConfig = yaml.safeLoad(fs.readFileSync(ymlFile, 'utf8'));
       if (_.isObject(ymlConfig)) {
-        mergeConfig(defaultConfig, extractYml(ymlConfig));
+        mergeConfig(defaultConfig, _util.extractYml(ymlConfig));
       }
     } catch (e) {
       logger.error('load yml config fail:', e.message);
     }
-  } else if (env === 'test') {
-    mergeConfig(defaultConfig, require('../config/config.test'));
   } else {
     throw new Error('unsupport enviroment ' + env);
+  }
+  try {
+    mergeConfig(defaultConfig, require('../config/config.custom'));
+  } catch(ex) {
+    // ignore
   }
   const db = defaultConfig.db;
   if (db.type === 'sqlite') {
     initSqlite(db.sqlite, logger);
   } else if (db.type === 'mysql') {
     if (!db.mysql.host || !db.mysql.username || !db.mysql.password || !db.mysql.database) {
-      throw new Error(`mysql config required`);
+      throw new Error('mysql config required');
     }
   } else {
     throw new Error(`Unsupport database type: ${db.type}`);
+  }
+  if (!defaultConfig.__secretKey) {
+    defaultConfig.__secretKey = loadSecretKey(logger);
   }
   return defaultConfig;
 }
@@ -120,7 +81,20 @@ function initSqlite(cfg, logger, fallback = true) {
   }
 }
 
-module.exports = {
-  loadConfig,
-  extractYml
-};
+function loadSecretKey(logger) {
+  let key;
+  const keyFile = path.join(__dirname, '.secretKey');
+  if (!(_util.existsSync(keyFile))) {
+    key = _util.generatePassword({ length: 32 });
+    fs.writeFileSync(keyFile, key);
+    logger.info('Generated new secretKey');
+  } else {
+    key = fs.readFileSync(keyFile, 'utf-8');
+  }
+  return key;
+}
+
+// singleton
+const config = loadConfig();
+logger.level = process.env['LOG_LEVEL'] || config.log.level;
+module.exports = config;

@@ -1,5 +1,5 @@
 const supportedMimeType = (function() {
-  const MIME_TYPES = ['video/webm', 'video/mp4'];  
+  const MIME_TYPES = ['video/webm', 'video/mp4'];
   for(let i = 0; i < MIME_TYPES.length; i++) {
     if (MediaRecorder.isTypeSupported(MIME_TYPES[i]))
       return MIME_TYPES[i];
@@ -54,7 +54,76 @@ function joinUrl(...args) {
   return p + (args.join('/').replace(/\/+/g, '/'));
 }
 
-
+class PointsManager {
+  constructor(remote, id)  {
+    this.id = id;
+    this.remote = remote;
+    this.points = [];
+    this.onIntHandler = this.onInt.bind(this);
+    this.tm = setTimeout(this.onIntHandler, 3000);
+    this.tries = 0;
+  }
+  onInt() {
+    this.tm = null;
+    try {
+      this._upload().then(() => fn.call(this), () => fn.call(this));
+    } catch(ex) {
+      console.error(ex);
+      fn.call(this);
+    }
+    function fn() {
+      if (this.id && !this.tm) {
+        this.tm = setTimeout(this.onIntHandler, 3000);
+      }
+    }
+  }
+  stop() {
+    if (this.tm) {
+      clearTimeout(this.tm);
+      this.tm = null;
+    }
+    this._upload(true);
+    this.id = null;
+  }
+  add(point) {
+    const points = this.points;
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1];
+      if (Math.abs(point.x - lastPoint.x) <= 30 && Math.abs(point.y - lastPoint.y) <= 30) {
+        return;
+      }
+    }
+    this.points.push(point);
+  }
+  _upload() {
+    if (this.points.length === 0) return;
+    const points = this.points;
+    this.points = [];
+    this.tries = 0;
+    return this._doUpload(points);
+  }
+  _doUpload(points) {
+    return new Promise(res => {
+      function fn() {
+        this._fetch('ux/records/' + this.id + '/points', {
+          method: 'POST',
+          data: { points }
+        }).then(res, err => {
+          this.tries++;
+          if (this.tries >= 20) {
+            console.error(err);
+            return res();
+          }
+          setTimeout(() => fn.call(this), 0); // try again
+        });
+      }
+      fn.call(this);
+    });
+  }
+  _fetch(url, options) {
+    return fetch2(joinUrl(this.remote, url), options);
+  }
+}
 class UploadManager {
   constructor(remote, id) {
     this.id = id;
@@ -173,6 +242,14 @@ class Client {
       this[funcName].apply(this, args);
     }
   }
+  onMouseMove(x, y, w, h) {
+    if (!this.curRecord || this.curRecord.startTime <= 0) return;
+    this.curRecord.pointer && this.curRecord.pointer.add({
+      type: 10,
+      x, y, w, h,
+      ts: Date.now() - this.curRecord.startTime
+    });
+  }
   setUXRemote(uxRemote) {
     this.uxRemote = uxRemote;
   }
@@ -181,14 +258,21 @@ class Client {
     this.curRecord = {
       id,
       tag,
-      state: 'waiting',
-      uploader: null
+      startTime: 0,
+      pointer: null,
+      uploader: null,
+      state: 'waiting'      
     };
     if (this.stream) {
       return this._doStartRecord();
     }
     chrome.tabCapture.capture({
       video: true,
+      videoConstraints: {
+        mandatory: {
+          maxFrameRate: 24
+        }
+      },
       audio: false
     }, stream => {
       if (!stream) {
@@ -242,6 +326,8 @@ class Client {
     }
     recorder.start(3000);
     // console.log('recorder started');
+    this.curRecord.startTime = Date.now();
+    this.curRecord.pointer = new PointsManager(this.uxRemote, this.curRecord.id);
     this.curRecord.recorder = recorder;
     this.curRecord.state = 'recording';
     this.curRecord.uploader = new UploadManager(this.uxRemote, this.curRecord.id);
@@ -250,6 +336,7 @@ class Client {
     if (!this.curRecord) return;
     this.curRecord.state = 'stopped';
     const recorder = this.curRecord.recorder;
+
     this.curRecord.recorder = null;
     if (recorder) {
       // stop 函数会触发 stop 事件
@@ -264,6 +351,9 @@ class Client {
     const uploader = this.curRecord.uploader;
     uploader && uploader.stop();
     this.curRecord.uploader = null;
+    const pointer = this.curRecord.pointer;
+    pointer && pointer.stop();
+    this.curRecord.pointer = null;
     const recorder = this.curRecord.recorder;
     recorder && recorder.stop();
     this.curRecord.recorder = null;
@@ -275,7 +365,7 @@ class Client {
   _onRecordData(evt) {
     if (!this.curRecord || !this.curRecord.uploader) return;
     if (!evt.data || !this.uxRemote) return;
-    // console.log('recorder data come', evt.data);
+    console.log('recorder data come', evt);
     this.curRecord.uploader.addBlob(evt.data);
   }
 }

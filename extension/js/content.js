@@ -34,6 +34,7 @@ class Client {
     this.onDisconnectHandler = this.onDisconnect.bind(this);
     this.onWindowUnloadHandler = this.onWindowUnload.bind(this);
     this.onWindowMessageHandler = this.onWindowMessage.bind(this);
+    this.onMouseMoveHandler = this.onMouseMove.bind(this);
     this.curRecord = null;
     this.uxRemote = null;
     this.initialize();
@@ -59,6 +60,15 @@ class Client {
     this.port.onMessage.removeListener(this.onMessageHandler);
     this.port.onDisconnect.removeListener(this.onDisconnectHandler);
     this.port = null;
+  }
+  onMouseMove(evt) {
+    // console.log(evt.pageX, evt.pageY, document.clientWidth, document.clientHeight);
+    this._postPortMessage('onMouseMove', [
+      evt.pageX,
+      evt.pageY,
+      window.innerWidth,
+      window.innerHeight
+    ]);
   }
   onWindowUnload() {
     this.port && this.port.disconnect();
@@ -112,10 +122,12 @@ class Client {
       this.stopRecord();
     }
     this.curRecord = { id, tag };
+    document.addEventListener('mousemove', this.onMouseMoveHandler, false);    
     this._postPortMessage('startRecord', id, tag);
   }
   stopRecord() {
     if (this.curRecord) {
+      document.removeEventListener('mousemove', this.onMouseMoveHandler);
       this._postPortMessage('stopRecord', this.curRecord.id);      
     }
     this.curRecord = null;

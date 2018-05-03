@@ -3,7 +3,13 @@ const _ = require('lodash');
 const User = require(__common + 'model/User');
 const Role = require(__common + 'model/Role');
 const Privilege = require(__common + 'model/Privilege');
-const { util } = require(__framework);
+const {
+  util,
+  logger,
+  config,
+  encodePassword,
+  database
+} = require(__framework);
 
 async function initRolesAndPrivileges(app) {
 
@@ -15,7 +21,7 @@ async function initRolesAndPrivileges(app) {
     try {
       rp = require(file);
     } catch(ex) {
-      app.logger.warn('[load role privilege]', file, 'not found or invalidate, ignore');
+      logger.warn('[load role privilege]', file, 'not found or invalidate, ignore');
       return;
     }
     privileges = privileges.concat(rp.privileges);
@@ -47,7 +53,7 @@ async function initRolesAndPrivileges(app) {
     return new Role(r);
   });
 
-  await app.db.transaction(async db => {
+  await database.transaction(async db => {
     await db.save(privileges);
     await db.save(roles);
   });
@@ -58,10 +64,10 @@ async function initRolesAndPrivileges(app) {
   };
 }
 
-async function initUsers(app, rp) {
-  const admin = app.config.admin;
+async function initUsers(rp) {
+  const admin = config.initialize.admin;
   admin.roles = rp.roles;
-  const users = [admin].concat((app.config.users || []).map(u => {
+  const users = [admin].concat((config.initialize.users || []).map(u => {
     u.roles = u.roles.map(r => _.find(rp.roles, rm => rm.id === r)).filter(r => !!r);
     return u;
   }));
@@ -73,16 +79,22 @@ async function initUsers(app, rp) {
 
   for(let i = 0; i < users.length; i++) {
     const u = _.find(existUsers, eu => eu.username === users[i].username) || new User(users[i]);
-    u.password = await app.hash.encodePassword(users[i].password, true);
+    if (!u.password && !users[i].password) {
+      users[i].password = util.generatePassword();
+      logger.info('Generate new password for', users[i].username, ' ==> ', users[i].password);
+    }
+    if (!u.password) {
+      u.password = await encodePassword(users[i].password, true);      
+    }
     users[i] = u;
   }
-  await app.db.save(users);
+  await database.save(users);
 
 }
 
 async function initData(app) {
-  const rp = await initRolesAndPrivileges(app);
-  await initUsers(app, rp);
+  const rp = await initRolesAndPrivileges();
+  await initUsers(rp);
 }
 
 module.exports = initData;

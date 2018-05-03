@@ -4,6 +4,11 @@ const UserSettingForm = require('../form/UserSetting');
 const PasswordResetForm = require('../form/ResetPassword');
 const User = require(__common + 'model/User');
 const _ = require('lodash');
+const {
+  logger,
+  verifyPassword,
+  encodePassword
+} = require(__framework);
 
 async function session() {
   const user = await User.findOneById(this.user.id);
@@ -18,7 +23,7 @@ async function session() {
 async function test() {
   const Test = require(__common + 'model/Test');
   const t1 = new Test({ tb: 'kk' });
-  console.log(t1);
+  logger.log(t1);
   await t1.save();
 
   const t2 = await Test.findOneById(t1.id, {
@@ -27,7 +32,7 @@ async function test() {
       createTime: t1.createTime
     }
   });
-  console.log(t2);
+  logger.log(t2);
   // if (t2) await t2.remove();
   // t2.tb = 'yes2';
   // await t2.save();
@@ -39,7 +44,7 @@ async function login() {
   const user = await User.findOne({
     username: form.username
   });
-  if (!user || !(await this.hash.verifyPassword(user.password, form.password))) {
+  if (!user || !(await verifyPassword(user.password, form.password))) {
     this.session = null;  // destroy previous
     return this.error(1001, 'error.login');
   }
@@ -50,7 +55,7 @@ async function login() {
 
 async function register() {
   const user = new User(await this.fillForm(UserForm));
-  user.password = await this.hash.encodePassword(user.password);
+  user.password = await encodePassword(user.password);
   await user.save();
   this.success({ id: user.id });
 }
@@ -75,11 +80,11 @@ async function resetPassword() {
   const user = await User.findOne({ id: this.session.userId });
   const form = await this.fillForm(PasswordResetForm);
 
-  if (!(await this.hash.verifyPassword(user.password, form.oldPassword))) {
+  if (!(await verifyPassword(user.password, form.oldPassword))) {
     return this.error(403, 'old password is wrong');
   }
 
-  user.password = await this.hash.encodePassword(form.newPassword);
+  user.password = await encodePassword(form.newPassword);
   await user.save();
   this.session = null;
   this.success({ id: user.id });

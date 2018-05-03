@@ -1,3 +1,4 @@
+/*eslint no-console:off*/
 const LEVELS = {
   debug: 0,
   info: 1,
@@ -53,7 +54,7 @@ class SimpleLogger {
     this._log(LEVELS.debug, ...args);
   }
   log(...args) {
-    this._log(LEVELS.info, ...args);
+    this._log(LEVELS.debug, ...args);
   }
   info(...args) {
     this._log(LEVELS.info, ...args);    

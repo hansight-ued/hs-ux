@@ -1,5 +1,4 @@
 const Joi = require('joi');
-const _ = require('lodash');
 const logger = require('./logger');
 
 class BaseForm {
