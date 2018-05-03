@@ -33,7 +33,7 @@ app.config([
     }).state('ux.record.detail', {
       url: '/record/:id',
       component: 'uxRecordDetail'
-    })
+    });
   }
 ]);
 

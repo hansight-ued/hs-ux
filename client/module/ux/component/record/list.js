@@ -36,7 +36,7 @@ class RecordListCtrl {
       this.records.data = result.data;
       result.data.forEach(re => {
         re.state = STATE_NAME_MAP[re.state];
-      })
+      });
     }, err => {
       message.error('获取录屏列表数据失败', err.message);
     }).finally(() => {

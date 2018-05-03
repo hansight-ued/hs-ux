@@ -1,9 +1,17 @@
 {
-  "extends": "./entry/node_modules/stylelint-config-standard",
+  "extends": "stylelint-config-standard",
+  "plugins": [
+    "./entry/bin/script/lint/strict_color_rule.js"
+  ],
   "rules": {
+    "color-named": "never",
+    "color-hex-length": "long",
+    "color-hex-case": "lower",
+    "no-missing-end-of-source-newline": true,
+    "hansight/strict-color": true,
     "no-descending-specificity": null,
     "string-quotes": "single",
-    "selector-type-no-unknown": [null],
+    "selector-type-no-unknown": null,
     "selector-pseudo-element-colon-notation": "single"
   }
 }
