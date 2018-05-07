@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const _util = require('./util');
 const logger = require('./logger');
 const pbkdf2 = _util.wrapPromise(crypto.pbkdf2);
+const randomBytes = _util.wrapPromise(crypto.randomBytes);
 
 async function tryPbkdf2(password, salt) {
   const maxTries = 3;
@@ -23,7 +24,7 @@ async function tryRandom() {
   let i = 0;
   while (i >= 0) {
     try {
-      return (await _util.randomBytes(16)).toString('hex');
+      return (await randomBytes(16)).toString('hex');
     } catch (ex) {
       i++;
       if (i === maxTries) {

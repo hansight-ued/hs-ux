@@ -49,6 +49,25 @@ async function parseBody(options = EMPTY) {
   const type = options.type || 'json';
   const formCfg = config.form;  
   switch(type) {
+  case 'raw':
+    return await new Promise((resolve, reject) => {
+      let buf = Buffer.allocUnsafe(0);
+      let __ended = false;
+      this.req.on('data', chunk => {
+        if (__ended) return;
+        buf = Buffer.concat([buf, chunk], buf.length + chunk.length);
+      });
+      this.req.on('end', () => {
+        if (__ended) return;
+        __ended = true;
+        resolve(buf);
+      });
+      this.req.on('error', err => {
+        if (__ended) return;
+        __ended = true;
+        reject(err);
+      });
+    });
   case 'query':
     return this.query;
   case 'json':

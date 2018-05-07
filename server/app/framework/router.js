@@ -1,6 +1,7 @@
 const _util = require('./util');
 const _ = require('lodash');
 const path = require('path');
+const fsps = require('fs/promises');
 const KOARouter = require('koa-router');
 const config = require('./config');
 const logger = require('./logger');
@@ -73,7 +74,7 @@ class Router extends KOARouter {
 }
 
 async function registerRouter(app) {
-  const subModules = await _util.readdir(__module);
+  const subModules = await fsps.readdir(__module);
   const subRouters = [];
   for(let i = 0; i < subModules.length; i++) {
     const rf = path.join(__module, subModules[i], 'router.js');

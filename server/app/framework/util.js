@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsps = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
 const passwordGenerator = require('generate-password');
@@ -15,14 +16,9 @@ function wrapPromise(fn) {
   };
 }
 
-const readdir = wrapPromise(fs.readdir);
-const stat = wrapPromise(fs.stat);
-const access = wrapPromise(fs.access);
-const readFile = wrapPromise(fs.readFile);
-
 async function exists(fileOrDir) {
   try {
-    await access(fileOrDir);
+    await fsps.access(fileOrDir);
     return true;
   } catch(ex) {
     return false;
@@ -30,10 +26,10 @@ async function exists(fileOrDir) {
 }
 
 async function loopRequire(dir, modules = []) {
-  const files = await readdir(dir);
+  const files = await fsps.readdir(dir);
   for(let i = 0; i < files.length; i++) {
     const fp = path.join(dir, files[i]);
-    const st = await stat(fp);
+    const st = await fsps.stat(fp);
     if (st.isDirectory()) {
       await loopRequire(fp, modules);
     } else if (st.isFile() && /\.js$/.test(fp)) {
@@ -121,18 +117,14 @@ function existsSync(file) {
   }
 }
 
+
+
 module.exports = {
   generatePassword,
   extractYml,
   existsSync,
-  writeFile: wrapPromise(fs.writeFile),
-  randomBytes: wrapPromise(crypto.randomBytes),
+  exists,
   decorate,
   wrapPromise,
-  readFile,
-  readdir,
-  stat,
-  access,
-  exists,
   loopRequire
 };

@@ -86,6 +86,7 @@ class PointsManager {
     this.id = null;
   }
   add(point) {
+    return;
     const points = this.points;
     if (points.length > 0) {
       const lastPoint = points[points.length - 1];
@@ -121,7 +122,7 @@ class PointsManager {
     });
   }
   _fetch(url, options) {
-    return fetch2(joinUrl(this.remote, url), options);
+    return fetch2(joinUrl(this.remote, '__api', url), options);
   }
 }
 class UploadManager {
@@ -191,7 +192,7 @@ class UploadManager {
     });
   }
   _fetch(url, options) {
-    return fetch2(joinUrl(this.remote, url), options);
+    return fetch2(joinUrl(this.remote, '__api', url), options);
   }
 }
 class Client {
@@ -360,7 +361,7 @@ class Client {
     this.curRecord = null;    
   }
   _fetch(url, options) {
-    return fetch2(joinUrl(this.uxRemote, url), options);
+    return fetch2(joinUrl(this.uxRemote, '__api', url), options);
   }
   _onRecordData(evt) {
     if (!this.curRecord || !this.curRecord.uploader) return;

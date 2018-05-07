@@ -2,6 +2,7 @@ const typeorm = require('typeorm');
 const _ = require('lodash');
 const _util = require('./util');
 const path = require('path');
+const fsps = require('fs/promises');
 const {
   ObjectId
 } = require('bson');
@@ -266,7 +267,7 @@ class DatabaseManager {
      */
     const moduleDir = path.join(__root, 'module');
 
-    const subModules = await _util.readdir(moduleDir);
+    const subModules = await fsps.readdir(moduleDir);
 
     for (let i = 0; i < subModules.length; i++) {
       const modelDir = path.join(moduleDir, subModules[i], 'model');

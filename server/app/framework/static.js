@@ -1,5 +1,6 @@
 const _util = require('./util');
 const path = require('path');
+const fsps = require('fs/promises');
 const fs = require('fs');
 const mime = require('mime-types');
 const zlib = require('zlib');
@@ -49,7 +50,7 @@ async function initStatic(app) {
     let stat;
 
     try {
-      stat = await _util.stat(file);
+      stat = await fsps.stat(file);
     } catch (ex) {
       if (NOT_EXIST_CODES.indexOf(ex.code) < 0) {
         // 对于某些意料之外的异常类型，打印日志
@@ -92,7 +93,7 @@ async function initStatic(app) {
         // 缓存失效时读取文件内容并 gzip 压缩
         f = {
           mtime: nmt,
-          buffer: await _util.readFile(file),
+          buffer: await fsps.readFile(file),
           gzip: false
         };
         if (url === '/index.html') {

@@ -14,8 +14,8 @@
     </thead>
     <tbody>
       <tr ng-repeat="record in $ctrl.records.data">
-        <td ng-bind="record.startTime"></td>
-        <td ng-bind="record.endTime"></td>
+        <td ng-bind="record.startTime | date:'yyyy-MM-dd HH:mm:ss'"></td>
+        <td ng-bind="record.endTime | date:'yyyy-MM-dd HH:mm:ss'"></td>
         <td ng-bind="record.tag"></td>
         <td ng-bind="record.state"></td>
         <td>

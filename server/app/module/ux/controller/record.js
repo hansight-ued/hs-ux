@@ -10,6 +10,7 @@ const {
 const convertManager = require('../service/convert');
 const { dateFromObjectId } = require('../service/util');
 const fs = require('fs');
+const fsps = require('fs/promises');
 const path = require('path');
 
 class CreateRecordForm extends BaseForm {
@@ -86,10 +87,11 @@ async function upload() {
   const dt = dateFromObjectId(recordId);
   if (!dt) return this.error(400);
   const dataDir = path.join(config.ux.dataDir, dt);
-  await this.util.mkdir(dataDir, true);
+  if (!(await util.exists(dataDir)))
+    await fsps.mkdir(dataDir);
   for(let i = 0; i < 11; i++) {
     try {
-      await this.util.appendFile(path.join(dataDir, `${recordId}.${record.mimeType.split('/')[1]}`), body);
+      await fsps.appendFile(path.join(dataDir, `${recordId}.${record.mimeType.split('/')[1]}`), body);
       break;
     } catch(ex) {
       if (i >= 10) { // 最多尝试 10 次
@@ -125,7 +127,7 @@ async function download() {
   logger.debug(file);
   if (!(await util.exists(file)))
     return this.error(404);
-  const stat = await util.stat(file);
+  const stat = await fsps.stat(file);
   const total = stat.size;
   const range = this.headers.range;
 
@@ -159,7 +161,7 @@ async function download() {
 }
 
 async function test() {
-  const r = await RecordModel.findOneById('5a7ff1c5e43bddd06308872a');
+  const r = await RecordModel.findOne();
   logger.debug(r);
   this.success(r);
 }

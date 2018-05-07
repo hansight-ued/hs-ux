@@ -50,7 +50,7 @@ function loadConfig() {
   }
   const db = defaultConfig.db;
   if (db.type === 'sqlite') {
-    initSqlite(db.sqlite, logger);
+    initSqlite(db.sqlite);
   } else if (db.type === 'mysql') {
     if (!db.mysql.host || !db.mysql.username || !db.mysql.password || !db.mysql.database) {
       throw new Error('mysql config required');
@@ -64,21 +64,9 @@ function loadConfig() {
   return defaultConfig;
 }
 
-function initSqlite(cfg, logger, fallback = true) {
-  try {
-    exec(`mkdir -p ${cfg.database}`);
-    cfg.database = path.join(cfg.database, `${(pkgName || 'db').toLowerCase()}.sqlite`);
-  } catch(ex) {
-    logger.error(ex.message);
-    if (ex.message.indexOf('Permission denied') >= 0 && fallback) {
-      const fp = path.resolve(__root, '../run/db');
-      logger.error(`Permission denied to make database dir: ${cfg.database}, use ${fp} instead`);
-      cfg.database = fp;
-      initSqlite(cfg, logger, false);
-    } else {
-      throw ex;
-    }
-  }
+function initSqlite(cfg) {
+  exec(`mkdir -p ${cfg.database}`);
+  cfg.database = path.join(cfg.database, `${(pkgName || 'db').toLowerCase()}.sqlite`);
 }
 
 function loadSecretKey(logger) {
