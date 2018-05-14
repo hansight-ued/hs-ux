@@ -25,7 +25,7 @@ const COLUMN_DEFINES = {
     type: 'tinyint',
     default: MOUSE_TYPES.MOVE
   },
-  ts: 'int',
+  timestamp: 'time',
   x: 'int',
   y: 'int',
   w: 'int',

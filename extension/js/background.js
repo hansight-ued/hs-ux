@@ -34,8 +34,7 @@ chrome.runtime.onConnect.addListener(function(port) {
   const client = new Client(id, port);
   clients.set(id, client);
   tabs.set(client.tabId, client);
-  console.log('new port connected', id, port.sender.tab.id);
-
+  // console.log('new port connected', id, port.sender.tab.id);
 });
 
 chrome.browserAction.onClicked.addListener(tab => {
@@ -61,7 +60,6 @@ class PointsManager {
     this.points = [];
     this.onIntHandler = this.onInt.bind(this);
     this.tm = setTimeout(this.onIntHandler, 3000);
-    this.tries = 0;
   }
   onInt() {
     this.tm = null;
@@ -86,39 +84,18 @@ class PointsManager {
     this.id = null;
   }
   add(point) {
-    return;
-    const points = this.points;
-    if (points.length > 0) {
-      const lastPoint = points[points.length - 1];
-      if (Math.abs(point.x - lastPoint.x) <= 30 && Math.abs(point.y - lastPoint.y) <= 30) {
-        return;
-      }
-    }
     this.points.push(point);
   }
   _upload() {
     if (this.points.length === 0) return;
-    const points = this.points;
-    this.points = [];
-    this.tries = 0;
+    const points = this.points.slice();
+    this.points.length = 0;
     return this._doUpload(points);
   }
   _doUpload(points) {
-    return new Promise(res => {
-      function fn() {
-        this._fetch('ux/records/' + this.id + '/points', {
-          method: 'POST',
-          data: { points }
-        }).then(res, err => {
-          this.tries++;
-          if (this.tries >= 20) {
-            console.error(err);
-            return res();
-          }
-          setTimeout(() => fn.call(this), 0); // try again
-        });
-      }
-      fn.call(this);
+    return this._fetch('ux/records/' + this.id + '/points', {
+      method: 'POST',
+      data: { points }
     });
   }
   _fetch(url, options) {
@@ -132,7 +109,6 @@ class UploadManager {
     this.queue = [];
     this.state = 'running';
     this.isUploading = false;
-    this.tries = 0;
   }
   addBlob(blob) {
     if (this.state === 'error' || this.state === 'stopped') return;
@@ -153,42 +129,26 @@ class UploadManager {
   _upload() {
     const blob = this.queue.shift();
     this.isUploading = true;
-    this.tries = 20;
     this._doUpload(blob);
   }
   _stop() {
-    this.tries = 0;
     this._doStop();
   }
   _doStop() {
-    this._fetch(`ux/records/${this.id}/stop`, {
+    return this._fetch(`ux/records/${this.id}/stop`, {
       method: 'PUT'
-    }).catch(err => {
-      this.tries++;
-      if (this.tries <= 20) {
-        setTimeout(() => {
-          this._doStop();
-        }, 500);
-      }
-    })
+    });
   }
   _doUpload(blob) {
-    this._fetch(`ux/records/${this.id}/upload`, {
+    return this._fetch(`ux/records/${this.id}/upload`, {
       method: 'POST',
       data: blob
     }).then(() => {
       this.isUploading = false;
       this._schedule();
     }, err => {
-      this.tries++;
-      if (this.tries <= 20) {
-        setTimeout(() => {
-          this._doUpload(blob);
-        }, 500);
-      } else {
-        this.state = 'error';
-        this.queue.length = 0; // clear
-      }
+      this.state = 'error';
+      this.queue.length = 0; // clear
     });
   }
   _fetch(url, options) {
@@ -248,7 +208,7 @@ class Client {
     this.curRecord.pointer && this.curRecord.pointer.add({
       type: 10,
       x, y, w, h,
-      ts: Date.now() - this.curRecord.startTime
+      timestamp: Date.now()
     });
   }
   setUXRemote(uxRemote) {

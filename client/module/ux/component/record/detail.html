@@ -6,8 +6,14 @@
   <div class="ctrl">
     <hs-button ng-click="$ctrl.togglePlay()" text="{{$ctrl.playing ? '暂停' : '播放'}}"></hs-button>
     <hs-button ng-click="$ctrl.stop()" text="停止"></hs-button>
+    <hs-checkbox checked="$ctrl.showMouseTrack" on-change="$ctrl.onShowMouseTrackChange(value)" text="显示轨迹"></hs-checkbox>
+    <hs-checkbox checked="$ctrl.showMouseHot" on-change="$ctrl.onShowMouseHostChange(value)" text="显示热图"></hs-checkbox>
   </div>
   <div class="video">
-    <video controls></video>
+    <video></video>
+    <div class="mouse">
+      <canvas class="t" style="z-index: 10;"></canvas>
+      <canvas class="h" style="z-index: 8;"></canvas>
+    </div>
   </div>
 </div>

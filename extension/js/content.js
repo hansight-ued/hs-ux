@@ -37,6 +37,8 @@ class Client {
     this.onMouseMoveHandler = this.onMouseMove.bind(this);
     this.curRecord = null;
     this.uxRemote = null;
+    this.pointMinDistance = 100;
+    this._lastPoint = {x: -1000, y: -1000};
     this.initialize();
   }
   initialize() {
@@ -47,9 +49,10 @@ class Client {
     window.addEventListener('unload', this.onWindowUnloadHandler, false);
     window.addEventListener('message', this.onWindowMessageHandler, false);
   }
-  isInstalled(uxRemote) {
+  isInstalled(uxRemote, pointMinDistance) {
     if (!supportedMimeType) return;
     this.uxRemote = uxRemote;
+    this.pointMinDistance = pointMinDistance;
     this._postWindowMessage('foundInstalled');
     this._postPortMessage('setUXRemote', this.uxRemote);
   }
@@ -61,14 +64,24 @@ class Client {
     this.port.onDisconnect.removeListener(this.onDisconnectHandler);
     this.port = null;
   }
+  _calcPointsDistance(p1, p2) {
+    const dx = p1.x - p2.x;
+    const dy = p1.y - p2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
   onMouseMove(evt) {
-    // console.log(evt.pageX, evt.pageY, document.clientWidth, document.clientHeight);
-    this._postPortMessage('onMouseMove', [
+    const cp = {x: evt.pageX, y: evt.pageY};
+    if (this._calcPointsDistance(this._lastPoint, cp) < this.pointMinDistance) {
+      return;
+    }
+    this._lastPoint = cp;
+    this._postPortMessage(
+      'onMouseMove',
       evt.pageX,
       evt.pageY,
       window.innerWidth,
       window.innerHeight
-    ]);
+    );
   }
   onWindowUnload() {
     this.port && this.port.disconnect();
@@ -142,7 +155,6 @@ function createClient() {
     client.destroy();
   }
   client = new Client();
-  console.log('create client');
 }
 
 createClient();

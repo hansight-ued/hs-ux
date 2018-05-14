@@ -5,10 +5,10 @@
   "main": "dev.config.js",
   "scripts": {
     "start": "npm run dev",
-    "dev": "node ./entry/bin/pentagon.js dev",
-    "build": "node ./entry/bin/pentagon.js build",
-    "lint": "node ./entry/bin/pentagon.js lint",
-    "cmd": "node ./entry/bin/pentagon.js",
+    "dev": "pentagon dev-app",
+    "build": "pentagon build-app",
+    "lint": "pentagon lint",
+    "entry-dev": "node ./entry/bin/pentagon.js dev-entry",
     "validate": "npm ls"
   },
   "repository": {
@@ -30,5 +30,8 @@
     "precommit-hook": "^3.0.0",
     "stylelint-config-standard": "^18.2.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@hansight/pentagon": "0.0.12",
+    "heatmap.js": "^2.0.5"
+  }
 }

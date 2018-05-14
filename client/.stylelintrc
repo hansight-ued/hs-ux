@@ -1,7 +1,7 @@
 {
   "extends": "stylelint-config-standard",
   "plugins": [
-    "./entry/bin/script/lint/strict_color_rule.js"
+    "./node_modules/@hansight/pentagon/bin/script/lint/strict_color_rule.js"
   ],
   "rules": {
     "color-named": "never",

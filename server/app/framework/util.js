@@ -1,5 +1,5 @@
 const fs = require('fs');
-const fsps = require('fs/promises');
+const fsps = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const passwordGenerator = require('generate-password');

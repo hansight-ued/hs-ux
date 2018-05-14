@@ -11,12 +11,12 @@ class PointsForm extends BaseForm {
   static get columnDefines() {
     return {
       points: Joi.array().min(1).max(10000).required().items(Joi.object().keys({
-        x: Joi.integer().required(),
-        y: Joi.integer().required(),
-        w: Joi.integer().required(),
-        h: Joi.integer().required(),
-        ts: Joi.integer().required(),
-        type: Joi.integer().min(0).max(250).required()
+        x: Joi.number().integer().required(),
+        y: Joi.number().integer().required(),
+        w: Joi.number().integer().required(),
+        h: Joi.number().integer().required(),
+        timestamp: Joi.number().integer().required(),
+        type: Joi.number().integer().min(0).max(250).required()
       }))
     };
   }
@@ -37,6 +37,27 @@ async function create() {
   this.success(true);
 }
 
+async function list() {
+  const recordId = this.params.recordId;
+  if (!recordId || recordId.length !== 24)
+    return this.error(400);
+  const record = await RecordModel.findOneById(recordId);
+  if (!record) return this.error(404);
+  const form = await this.fillForm(PaginationForm);
+  const [ points, total ] = await PointModel.findAndCount({
+    skip: form.page * form.size,
+    take: form.size,
+    where: {
+      record
+    }
+  });
+  this.success({
+    data: points,
+    total
+  });
+}
+
 module.exports = {
-  create
+  create,
+  list
 };

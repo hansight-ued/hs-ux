@@ -1,7 +1,9 @@
 const RecordModel = require('../model/Record');
+const PointModel = require('../model/Point');
 const PaginationForm = require(__common + 'form/pagination.js');
 const { 
   Joi,
+  database,
   BaseForm,
   logger,
   config,
@@ -10,7 +12,7 @@ const {
 const convertManager = require('../service/convert');
 const { dateFromObjectId } = require('../service/util');
 const fs = require('fs');
-const fsps = require('fs/promises');
+const fsps = require('fs').promises;
 const path = require('path');
 
 class CreateRecordForm extends BaseForm {
@@ -71,6 +73,24 @@ async function view() {
   const record = await RecordModel.findOneById(recordId);
   if (!record) return this.error(404);
   this.success(record);
+}
+
+async function remove() {
+  const recordId = this.params.id;
+  if (!recordId || recordId.length !== 24)
+    return this.error(400);
+  logger.debug(recordId);
+  const record = await RecordModel.findOneById(recordId);
+  if (!record) return this.error(404);
+  await database.transaction(async db => {
+    await db.createQueryBuilder()
+      .delete()
+      .from(PointModel)
+      .where({record})
+      .execute();
+    await db.remove(record);
+  });
+  this.success({id: recordId});
 }
 
 async function upload() {
@@ -171,6 +191,7 @@ module.exports = {
   list,
   stop,
   view,
+  remove,
   upload,
   download,
   test

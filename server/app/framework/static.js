@@ -1,6 +1,6 @@
 const _util = require('./util');
 const path = require('path');
-const fsps = require('fs/promises');
+const fsps = require('fs').promises;
 const fs = require('fs');
 const mime = require('mime-types');
 const zlib = require('zlib');

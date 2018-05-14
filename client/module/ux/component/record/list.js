@@ -1,10 +1,12 @@
 import {
   component,
-  message
+  message,
+  modal
 } from 'pentagon';
 import _tpl from './list.html';
 import {
-  getRecordList
+  getRecordList,
+  removeRecord
 } from '../../service/api';
 
 const STATE_NAME_MAP = {
@@ -18,7 +20,7 @@ const STATE_NAME_MAP = {
 class RecordListCtrl {
   $constructor() {
     this.records = {
-      _fp: null,
+      loading: false,
       total: 0,
       page: 0,
       size: 10,
@@ -27,8 +29,9 @@ class RecordListCtrl {
     this._request();
   }
   _request() {
-    if (this.records._fp) return;
-    this.records._fp = getRecordList(
+    if (this.records.loading) return;
+    this.records.loading = true;
+    getRecordList(
       this.records.page,
       this.records.size
     ).then(result => {
@@ -40,7 +43,17 @@ class RecordListCtrl {
     }, err => {
       message.error('获取录屏列表数据失败', err.message);
     }).finally(() => {
-      this.records._fp = null;
+      this.records.loading = false;
+    });
+  }
+  remove(record) {
+    modal.confirm(`确认删除${record.tag}？`, () => {
+      return removeRecord(record.id).then(() => {
+        message.success('删除成功!');
+        this._request();
+      }, ex => {
+        message.error('删除失败', ex.message);
+      });
     });
   }
 }

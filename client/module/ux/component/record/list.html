@@ -22,10 +22,13 @@
           <a ui-sref="ux.record.detail({id: record.id})">
             播放
           </a>
+          <a href="javascript:;" ng-click="$ctrl.remove(record)">
+            删除
+          </a>
         </td>
       </tr>
       <tr ng-if="$ctrl.records.data.length === 0">
-        <td colspan="3">
+        <td colspan="5">
           暂无数据
         </td>
       </tr>

@@ -103,10 +103,10 @@ class ConvertManager {
   }
   async _doCovert(record) {
     const dt = dateFromObjectId(record.id);
-    if (!dt) return this.error(400);
+    if (!dt) throw new Error('back record.id');
     const file = path.join(this.dataDir, dt, `${record.id}.${record.mimeType.split('/')[1]}`);
     if (!(await util.exists(file)))
-      return this.error(404);
+      throw new Error('File not exists: ' + file);
     const finalFile = path.join(this.dataDir, dt, `${record.id}.final.mp4`);
     await new Promise((resolve, reject) => {
       logger.debug('run ffmepg converting for record', record.id);      

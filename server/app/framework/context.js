@@ -138,7 +138,6 @@ async function coreHandler(ctx, next) {
   try {
     await next();
     if (!ctx.state.__bodySent) {
-      logger.warn('controller not set __bodySent');
       ctx.error(404);
     }
   } catch(ex) {

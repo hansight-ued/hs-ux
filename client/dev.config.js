@@ -28,6 +28,7 @@ module.exports = {
      * 由大家共同讨论第三方库应该放在 entry 里，
      * 还是放在此处
      */
+    'heatmap.js/build/heatmap.js'
   ],
   ngDeps: [
     /**
@@ -35,13 +36,7 @@ module.exports = {
      * 的模块依赖中也对应添加时，在此处添加
      */
   ],
-  rollupExternal: [
-    /* 此处添加内容前请保证完全理解，并在开发群中提出和讨论 */
-  ],
-  rollupGlobals: {
-    /* 此处添加内容前请保证完全理解，并在开发群中提出和讨论 */
-  },
-  rollupAlias: {
-    /* 此处添加内容前请保证完全理解，并在开发群中提出和讨论 */
+  bundleExternals: {
+    'heatmap.js': 'h337'
   }
 };

@@ -2,7 +2,7 @@ const typeorm = require('typeorm');
 const _ = require('lodash');
 const _util = require('./util');
 const path = require('path');
-const fsps = require('fs/promises');
+const fsps = require('fs').promises;
 const {
   ObjectId
 } = require('bson');

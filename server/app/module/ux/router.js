@@ -3,7 +3,7 @@ const {
   authorize
 } = require(__framework);
 const uxRouter = new Router({
-  prefix: '/ux/'
+  prefix: 'ux/'
 });
 
 const recordControllers = require('./controller/record');
